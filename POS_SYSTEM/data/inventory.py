@@ -6,4 +6,5 @@ inventory = {
     "Hotdog": {"price": 40.0, "stock": 100},
     "Ice Cream": {"price": 35.0, "stock": 100},
     "Extra Gravy": {"price": 15.0, "stock": 100},
+    "Palabok": {"price": 75.0, "stock": 100},
 }
