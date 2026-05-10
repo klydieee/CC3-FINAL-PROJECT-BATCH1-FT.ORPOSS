@@ -1,0 +1,17 @@
+====== FAST FOOD RECEIPT ======
+INVOICE #: 20260510213445
+2026-05-10 21:34:45.617235
+
+ITEM#   ITEM           QTY     PRICE     
+---------------------------------------------
+1       Burger         1       ₱50.0      
+2       Fries          1       ₱35.0      
+3       Chicken        1       ₱99.0      
+4       Soda           1       ₱25.0      
+---------------------------------------------
+TOTAL: ₱209.0
+CASH: ₱209.0
+CHANGE: ₱0.0
+
+PROOF OF BILLING
+ALL RIGHTS RESERVED

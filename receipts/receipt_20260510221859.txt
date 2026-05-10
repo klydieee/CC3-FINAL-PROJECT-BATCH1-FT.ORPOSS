@@ -1,0 +1,16 @@
+====== FAST FOOD RECEIPT ======
+INVOICE #: 20260510221859
+2026-05-10 22:18:59.534986
+
+ITEM#   ITEM           QTY     PRICE     
+---------------------------------------------
+1       Ice Cream      1       ₱35.0      
+2       Hotdog         1       ₱40.0      
+3       Extra Gravy    2       ₱30.0      
+---------------------------------------------
+TOTAL: ₱105.0
+CASH: ₱160.0
+CHANGE: ₱55.0
+
+PROOF OF BILLING
+ALL RIGHTS RESERVED

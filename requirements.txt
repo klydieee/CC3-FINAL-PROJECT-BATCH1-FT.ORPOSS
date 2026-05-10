@@ -1,0 +1,13 @@
+# requirements.txt
+# - python 3.14.4
+
+# This project is built using only the Python Standard Library.
+# No external dependencies (pip packages) are required.
+
+# Core modules used:
+# - tkinter (GUI)
+# - json (Data Storage)
+# - os (System/File Management)
+# - datetime (Timestamping)
+customtkinter
+Pillow
