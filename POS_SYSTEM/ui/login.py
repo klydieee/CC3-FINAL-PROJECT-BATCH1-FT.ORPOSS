@@ -9,7 +9,7 @@ ADMIN_PASS = "123"
 
 def start_login():
     window = tk.Tk()
-    window.title("Fast Food POS System")
+    window.title("Fast Food POS_SYSTEM")
     window.geometry("1100x650")
     window.configure(bg="#f4f4f4")
 
