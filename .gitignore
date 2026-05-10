@@ -9,9 +9,6 @@ __pycache__/
 #VS Code metadata
 .vscode/
 
-#Local system receipts (Prevents tracking individual sale files)
-ORPOSS/receipts/
-
 #Operating System generated files
 .DS_Store
 Thumbs.db
