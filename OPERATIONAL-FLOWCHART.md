@@ -23,3 +23,4 @@ A comprehensive, desktop-based Point of Sale (POS) system architecture designed 
 ### 📂 File Reference
 ORPOSS DETAILED OPERATIONAL FLOWCHART:
 ![Flowchart](docs/ORPOSS SYSTEMS OPERATIONAL DETAILED ANALYSIS.jpg)
+<img src="docs/ORPOSS%20SYSTEMS%20OPERATIONAL%20DETAILED%20ANALYSIS.jpg" width="100%" alt="Operational Flowchart">
