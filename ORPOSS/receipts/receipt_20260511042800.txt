@@ -1,0 +1,15 @@
+FAST FOOD ORPOSS
+MODE: COUNTER
+INVOICE: 20260511042800
+-----------------------------------
+Ice Cream       2x    35.00
+Chicken         2x    99.00
+Soda            3x    25.00
+Extra Gravy     2x    15.00
+Hotdog          1x    40.00
+Fries           1x    35.00
+Burger          1x    50.00
+-----------------------------------
+TOTAL:                498.00
+
+THANK YOU!
