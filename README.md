@@ -1,7 +1,7 @@
-# Fast Food POS System 
+# ORPOSS Ordering & Fast Food POS System 
 **Developed by BSIT 1-5 BATCH #1**
-
-A modular, desktop-based Point of Sale (POS) system built with Python and Tkinter. This project demonstrates clean UI/UX design, inventory management, and modular software architecture for academic and professional applications.
+![Flowchart](docs/ORPOSS SYSTEMS OPERATIONAL DETAILED ANALYSIS.jpg)
+A modular, desktop-based Point of Sale (POS) & Ordering System (OS) built with Python and Tkinter. This project demonstrates clean UI/UX design, inventory management, and modular software architecture for academic and professional applications.
 
 ## 🚀 Features
 * **Secure Login:** Role-based access control (Admin).
