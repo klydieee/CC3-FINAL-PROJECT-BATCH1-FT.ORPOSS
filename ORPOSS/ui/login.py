@@ -8,7 +8,7 @@ USERS = {
 
 def start_login():
     window = tk.Tk()
-    window.title("Fast Food POS_SYSTEM")
+    window.title("Fast Food ORPOSS")
     window.geometry("1100x650")
     window.configure(bg="#f4f4f4")
 

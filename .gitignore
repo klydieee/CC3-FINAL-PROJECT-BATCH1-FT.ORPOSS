@@ -10,7 +10,7 @@ __pycache__/
 .vscode/
 
 #Local system receipts (Prevents tracking individual sale files)
-pos_system/receipts/
+ORPOSS/receipts/
 
 #Operating System generated files
 .DS_Store
