@@ -123,7 +123,7 @@ def start_dashboard(window):
     total_label.pack(pady=10)
 
     cash_entry = tk.Entry(cart_frame, font=("Arial", 14), justify="center", width=15)
-    cash_entry.insert(0, "0")
+    cash_entry.insert(0, "")
     cash_entry.pack(pady=5)
 
     tk.Button(cart_frame, text="PROCESS CHECKOUT", bg="#27ae60", fg="white", font=("Arial", 10, "bold"),
