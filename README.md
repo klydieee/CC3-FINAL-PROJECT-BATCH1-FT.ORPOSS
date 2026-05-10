@@ -1,2 +1,2 @@
 CC3 FINAL PROJECT | BATCH 1
-POS Orderin Sytem
+POS Ordering Sytem
