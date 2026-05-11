@@ -4,7 +4,7 @@ from ui.login import start_login
 
 def main():
     root = tk.Tk()
-    root.title("Fast Food ORPOSS")
+    root.title("ORPOSS Ordering & Point of Sales System")
 
     width, height = 1100, 650
     screen_width = root.winfo_screenwidth()

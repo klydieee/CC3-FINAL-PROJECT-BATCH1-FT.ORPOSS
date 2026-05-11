@@ -1,0 +1,17 @@
+FAST FOOD ORPOSS
+MODE: KIOSK
+INVOICE: 20260511085644
+-----------------------------------
+Chicken         2x    99.00
+Ice Cream       1x    35.00
+Hotdog          1x    40.00
+Soda            1x    25.00
+Extra Gravy     1x    15.00
+Fries           1x    35.00
+-----------------------------------
+TOTAL:                348.00
+
+PAYMENT VIA E-WALLET
+REF: HRDRDPAO
+
+THANK YOU!

@@ -18,6 +18,15 @@ def start_dashboard(window, user_role="Client"):
     for widget in window.winfo_children():
         widget.destroy()
 
+    # --- FULLSCREEN CONFIGURATION ---
+    window.attributes('-fullscreen', True) # Set to full screen
+
+    # Allow user to exit fullscreen with the Escape Key
+    window.bind("<Escape>", lambda event: window.attributes("-fullscreen", False))
+
+    # Optional: Toggle fullscreen with F11
+    window.bind("<F11>", lambda event: window.attributes("-fullscreen", not window.attributes("-fullscreen")))
+
     # --- UI Configuration ---
     BG_COLOR = "#f8f9fa"
     TEXT_COLOR = "#2c3e50"
