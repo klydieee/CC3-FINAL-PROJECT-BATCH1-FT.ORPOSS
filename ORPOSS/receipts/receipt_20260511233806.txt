@@ -1,0 +1,17 @@
+FAST FOOD ORPOSS
+MODE: KIOSK
+INVOICE: 20260511233806
+DATE: 2026-05-11 23:38:06
+-----------------------------------
+Chicken         4x  ₱  396.00
+Extra Gravy     2x  ₱   30.00
+Ice Cream       1x  ₱   35.00
+-----------------------------------
+TOTAL:   ₱   461.00
+CASH:    ₱  5000.00
+CHANGE:  ₱  4539.00
+
+PAYMENT VIA E-WALLET
+REF: GMCDHDTQ
+
+THANK YOU!

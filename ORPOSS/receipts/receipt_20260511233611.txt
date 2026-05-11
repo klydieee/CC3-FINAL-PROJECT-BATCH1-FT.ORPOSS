@@ -1,0 +1,16 @@
+FAST FOOD ORPOSS
+MODE: KIOSK
+INVOICE: 20260511233611
+DATE: 2026-05-11 23:36:11
+-----------------------------------
+Extra Gravy     3x  ₱   45.00
+Ice Cream       1x  ₱   35.00
+-----------------------------------
+TOTAL:   ₱    80.00
+CASH:    ₱   100.00
+CHANGE:  ₱    20.00
+
+PAYMENT VIA E-WALLET
+REF: YFBNBZNX
+
+THANK YOU!

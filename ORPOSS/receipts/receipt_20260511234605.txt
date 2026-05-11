@@ -1,0 +1,16 @@
+FAST FOOD ORPOSS
+MODE: KIOSK
+INVOICE: 20260511234605
+DATE: 2026-05-11 23:46:05
+-----------------------------------
+Burger          1x  ₱   55.00
+Fries           1x  ₱   35.00
+-----------------------------------
+TOTAL:   ₱    90.00
+CASH:    ₱   100.00
+CHANGE:  ₱    10.00
+
+PAYMENT VIA E-WALLET
+REF: BNMZFMAL
+
+THANK YOU!
