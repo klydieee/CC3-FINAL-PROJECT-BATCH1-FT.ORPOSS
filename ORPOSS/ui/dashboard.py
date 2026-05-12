@@ -150,6 +150,7 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
     def handle_checkout():
         total = get_total()
         if not cart:
+            messagebox.showwarning("Empty Tray", "Please add items to your tray before placing an order.")
             return
 
         try:
