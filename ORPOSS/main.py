@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from ui.login import start_login
 
+
 def main():
     root = ctk.CTk()
     root.title("ORPOSS — Ordering & Point of Sales System")
