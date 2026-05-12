@@ -5,9 +5,13 @@
 # No external dependencies (pip packages) are required.
 
 # Core modules used:
-# - tkinter (GUI)
-# - json (Data Storage)
-# - os (System/File Management)
-# - datetime (Timestamping)
+tkinter
 customtkinter
+qrcode
+json
+os
+datetime
+ImageTk
+Image
+messagebox
 Pillow
