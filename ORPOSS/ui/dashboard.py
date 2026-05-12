@@ -347,6 +347,26 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
     scrollbar.pack(side="right", fill="y")
     canvas.bind("<Configure>", lambda e: canvas.itemconfig(cwin, width=e.width))
 
+    def _on_mousewheel(event):
+        x, y = event.x_root, event.y_root
+
+        tx = tray.winfo_rootx()
+        ty = tray.winfo_rooty()
+        tw = tray.winfo_width()
+        th = tray.winfo_height()
+
+        if tx <= x <= tx + tw and ty <= y <= ty + th:
+            bbox = canvas.bbox("all")
+            if bbox and bbox[3] > canvas.winfo_height():
+                canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        else:
+            mc = menu_scroll._parent_canvas
+            bbox = mc.bbox("all")
+            if bbox and bbox[3] > mc.winfo_height():
+                mc.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    window.bind_all("<MouseWheel>", _on_mousewheel)
+
     # checkout footer
     footer = tk.Frame(tray, bg="#fdfdfd", pady=24, padx=24,
                       bd=1, relief="solid")
