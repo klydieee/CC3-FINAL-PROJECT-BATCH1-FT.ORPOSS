@@ -14,7 +14,7 @@ from utils.receipt_generator import generate_receipt_file
 from ui.receipt_popup import show_receipt_popup
 from ui.order_review import show_order_review
 from ui.admin_panel import start_admin_panel
-from ui.login import start_login
+
 
 # ── palette ───────────────────────────────────────────────────────────────────
 BG_COLOR       = "#f8f9fa"
