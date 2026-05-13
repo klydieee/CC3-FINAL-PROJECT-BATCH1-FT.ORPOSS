@@ -4,6 +4,16 @@ from tkinter import messagebox
 import sys
 import os
 
-from ui.admin_panel import start_admin_panel
+from utils.palette import palette
 
-# def kitchen_dashboard(window):
+def start_kitchen_panel(window):
+    for w in window.winfo_children():
+        w.destroy()
+
+    if isinstance(window, ctk.Ctk):
+        window.configure(palette.bg)
+    else:
+        window.configure(palette.bg)
+
+    header = tk.Frame(window, bg=palette.bg, height=70)
+    header.pack(fill="x")

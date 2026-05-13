@@ -1,0 +1,14 @@
+FAST FOOD ORPOSS
+MODE: COUNTER
+INVOICE: 20260513090053
+DATE: 2026-05-13 09:00:53
+-----------------------------------
+Extra Rice      1x  ₱   20.00
+Chicken         1x  ₱   99.00
+Fries           1x  ₱   35.00
+-----------------------------------
+TOTAL:   ₱   154.00
+CASH:    ₱   200.00
+CHANGE:  ₱    46.00
+
+THANK YOU!
