@@ -1,0 +1,17 @@
+FAST FOOD ORPOSS
+MODE: COUNTER
+INVOICE: 20260514065156
+DATE: 2026-05-14 06:51:56
+-----------------------------------
+Ice Cream       1x  ₱   35.00
+Burger          1x  ₱   55.00
+Fries           2x  ₱   70.00
+Chicken         1x  ₱   99.00
+Extra Rice      1x  ₱   20.00
+Hotdog          2x  ₱   80.00
+-----------------------------------
+TOTAL:   ₱   359.00
+CASH:    ₱   500.00
+CHANGE:  ₱   141.00
+
+THANK YOU!

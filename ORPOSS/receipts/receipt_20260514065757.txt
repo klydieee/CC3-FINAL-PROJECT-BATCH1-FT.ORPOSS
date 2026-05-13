@@ -1,0 +1,17 @@
+FAST FOOD ORPOSS
+MODE: KIOSK
+INVOICE: 20260514065757
+DATE: 2026-05-14 06:57:57
+-----------------------------------
+Chicken         1x  ₱   99.00
+Fries           1x  ₱   35.00
+Extra Gravy     1x  ₱   15.00
+Extra Rice      1x  ₱   20.00
+-----------------------------------
+TOTAL:   ₱   169.00
+
+PAYMENT VIA E-WALLET
+REF: {ref}
+REF: CUMOYQNO
+
+THANK YOU!
