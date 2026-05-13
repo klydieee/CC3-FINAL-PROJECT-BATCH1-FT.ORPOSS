@@ -1,0 +1,14 @@
+FAST FOOD ORPOSS
+MODE: KIOSK
+INVOICE: 20260513233943
+DATE: 2026-05-13 23:39:43
+-----------------------------------
+Extra Rice      1x  ₱   20.00
+-----------------------------------
+TOTAL:   ₱    20.00
+
+PAYMENT VIA E-WALLET
+REF: {ref}
+REF: SFTVGGSQ
+
+THANK YOU!

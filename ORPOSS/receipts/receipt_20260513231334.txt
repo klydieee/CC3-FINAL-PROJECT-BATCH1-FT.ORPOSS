@@ -1,0 +1,14 @@
+FAST FOOD ORPOSS
+MODE: KIOSK
+INVOICE: 20260513231334
+DATE: 2026-05-13 23:13:34
+-----------------------------------
+Hotdog          1x  ₱   40.00
+-----------------------------------
+TOTAL:   ₱    40.00
+
+PAYMENT VIA E-WALLET
+REF: {ref}
+REF: UKUWIBAB
+
+THANK YOU!
