@@ -349,23 +349,21 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
               command=empty_cart).pack(side="right")
 
     # order type badge + done button
-    badge_row = tk.Frame(hdr, bg="white", height=40)
+    badge_row = tk.Frame(hdr, bg="white")
     badge_row.pack(fill="x", padx=24, pady=(6, 0))
-    badge_row.pack_propagate(False)
     badge_color = "#2c3e50" if order_type == "Dine-In" else "#e67e22"
     badge_emoji = "🍽️" if order_type == "Dine-In" else "🥡"
-    badge_lbl = tk.Label(badge_row, text=f"{badge_emoji} {order_type.upper()}",
-                font=("Segoe UI", 9, "bold"),
-                bg=badge_color, fg="white",
-                padx=10, pady=3)
-    badge_lbl.place(relx=0.5, rely=0.5, anchor="center")
+    tk.Label(badge_row, text=f"{badge_emoji} {order_type.upper()}",
+             font=("Segoe UI", 9, "bold"),
+             bg=badge_color, fg="white",
+             padx=10, pady=3).pack(side="left")
     tk.Button(badge_row, text="✕  DONE WITH ORDER",
               font=("Segoe UI", 8, "bold"),
               bg="white", fg="#95a5a6",
               activeforeground="#e74c3c",
               relief="flat", cursor="hand2",
               command=lambda: [window.attributes("-fullscreen", False), start_login(window)]
-              ).pack(side="right", pady=5)
+              ).pack(side="right")
 
     canvas_f = tk.Frame(tray, bg="white")
     canvas_f.pack(fill="both", expand=True)

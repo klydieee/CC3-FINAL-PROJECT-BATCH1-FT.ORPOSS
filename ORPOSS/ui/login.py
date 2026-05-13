@@ -12,6 +12,7 @@ def start_login(window):
     """Render the ORPOSS landing / login screen inside *window*."""
     for w in window.winfo_children():
         w.destroy()
+        w.destroy()
 
     # Using lowercase palette.bg
     window.configure(fg_color=palette.bg)

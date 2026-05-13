@@ -1,0 +1,19 @@
+FAST FOOD ORPOSS
+MODE: KIOSK
+INVOICE: 20260513235335
+DATE: 2026-05-13 23:53:35
+-----------------------------------
+Hotdog          1x  ₱   40.00
+Soda            1x  ₱   25.00
+Extra Rice      1x  ₱   20.00
+Fries           1x  ₱   35.00
+Burger          1x  ₱   55.00
+Ice Cream       1x  ₱   35.00
+-----------------------------------
+TOTAL:   ₱   210.00
+
+PAYMENT VIA E-WALLET
+REF: {ref}
+REF: NZUTRTRC
+
+THANK YOU!
