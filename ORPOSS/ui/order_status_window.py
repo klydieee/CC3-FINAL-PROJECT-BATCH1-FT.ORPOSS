@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from data.order_queue import advance_order, get_orders
+from db.orders_db import advance_order, get_orders
 from utils.helper import peso
 from utils.palette import palette
 
@@ -166,4 +166,14 @@ def open_order_status_window(parent_window, allow_status_update=False):
             win.after(1500, refresh)
 
     refresh()
+
+    # ── Pusher real-time subscription ─────────────────────────────────────────
+    def on_pusher_event(data):
+        if win.winfo_exists():
+            win.after(0, refresh)
+
+    from utils.pusher_client import subscribe
+    subscribe("orders", "new-order",     on_pusher_event)
+    subscribe("orders", "order-updated", on_pusher_event)
+
     return win

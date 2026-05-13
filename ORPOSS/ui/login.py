@@ -95,6 +95,53 @@ def start_login(window):
         win.bind("<Return>", lambda e: verify())
 
     # ── ACCESS BUTTONS (BOTTOM RIGHT) ──────────────────────────────────────────
+    def open_admin_panel_direct():
+        """Verify PIN then go straight to admin panel, skipping POS."""
+        win = tk.Toplevel(window)
+        win.title("Admin Panel Access")
+        win.geometry("320x400")
+        win.configure(bg=palette.bg)
+        win.resizable(False, False)
+        win.transient(window)
+        win.grab_set()
+        x = window.winfo_x() + window.winfo_width()  // 2 - 160
+        y = window.winfo_y() + window.winfo_height() // 2 - 200
+        win.geometry(f"+{x}+{y}")
+
+        tk.Label(win, text="🖥️", font=("Arial", 30), bg=palette.bg).pack(pady=(30, 10))
+        tk.Label(win, text="ADMIN PANEL", font=("Helvetica", 12, "bold"),
+                 bg=palette.bg, fg=palette.text).pack()
+        tk.Label(win, text="Enter your secure PIN", font=("Helvetica", 9),
+                 bg=palette.bg, fg="#7f8c8d").pack(pady=(0, 20))
+
+        pass_var = tk.StringVar()
+        entry = tk.Entry(win, textvariable=pass_var, font=("Helvetica", 18),
+                         show="●", justify="center", bd=0, bg=palette.win95, width=15)
+        entry.pack(ipady=10)
+        entry.focus_set()
+        tk.Frame(win, height=2, width=200, bg=palette.text).pack(pady=(0, 20))
+        err = tk.Label(win, text="", font=("Helvetica", 8), bg=palette.bg, fg=palette.danger)
+        err.pack()
+
+        def verify():
+            if pass_var.get() in ["admin123", "a123"]:
+                win.destroy()
+                from ui.admin_panel import start_admin_panel
+                start_admin_panel(window, back_to_pos_callback=lambda: start_login(window))
+            else:
+                pass_var.set("")
+                err.config(text="Incorrect PIN.")
+
+        btn_row = tk.Frame(win, bg=palette.bg)
+        btn_row.pack(side="bottom", fill="x", pady=20)
+        tk.Button(btn_row, text="CANCEL", font=("Helvetica", 9, "bold"),
+                  bg=palette.bg, fg=palette.text, relief="flat",
+                  command=win.destroy, cursor="hand2").pack(side="left", padx=30)
+        tk.Button(btn_row, text="LOGIN", font=("Helvetica", 9, "bold"),
+                  bg=palette.text, fg="white", relief="flat", width=12, height=2,
+                  command=verify, cursor="hand2").pack(side="right", padx=30)
+        win.bind("<Return>", lambda e: verify())
+
     # Kitchen Panel Button
     tk.Button(
         window,
@@ -106,13 +153,13 @@ def start_login(window):
         command=lambda: open_access_popup("Kitchen Access", "👨‍🍳", "Kitchen")
     ).place(relx=1.0, rely=1.0, anchor="se", x=-150, y=-20)
 
-    # Admin Settings Button
+    # Direct Admin Panel (skips POS)
     tk.Button(
         window,
-        text="ADMIN SETTINGS",
+        text="ADMIN PANEL",
         font=("Helvetica", 8, "bold"),
         bg=palette.win95, fg=palette.text,
         activebackground=palette.win95, activeforeground=palette.text,
         relief="flat", padx=10, pady=5, cursor="hand2",
-        command=lambda: open_access_popup("Admin Access", "🔒", "Admin")
+        command=open_admin_panel_direct
     ).place(relx=1.0, rely=1.0, anchor="se", x=-20, y=-20)

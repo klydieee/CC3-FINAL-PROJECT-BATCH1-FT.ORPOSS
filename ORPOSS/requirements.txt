@@ -1,0 +1,8 @@
+customtkinter
+Pillow
+qrcode[pil]
+mysql-connector-python
+pusher
+pysher
+python-dotenv
+cloudinary

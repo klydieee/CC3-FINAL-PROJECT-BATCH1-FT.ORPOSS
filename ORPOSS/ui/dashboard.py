@@ -8,8 +8,8 @@ import datetime
 import sys
 import os
 
-from data.inventory import inventory
-from data.order_queue import add_order
+from db.products_db import inventory
+from db.orders_db import add_order
 from utils.helper import peso
 from utils.receipt_generator import generate_receipt_file
 from ui.receipt_popup import show_receipt_popup
@@ -62,10 +62,9 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
 
     # ── helpers ───────────────────────────────────────────────────────────────
     def save_inventory():
-        base = os.path.dirname(os.path.abspath(__file__))
-        path = os.path.join(base, "..", "data", "inventory.py")
-        with open(path, "w") as f:
-            f.write(f"inventory = {repr(inventory)}")
+        from db.products_db import save_stock
+        for name in cart:
+            save_stock(name)
 
     def empty_cart():
         if not cart:
@@ -174,7 +173,7 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
             inv_no = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
             change = cash - total
             generate_receipt_file(cash, change, inv_no, total, summary, mode)
-            add_order(inv_no, order_type, mode, total, summary)
+            add_order(inv_no, order_type, mode, total, summary, cash=cash, change_amt=change)
             cart.clear()
             cash_var.set("₱")
             save_inventory()
@@ -247,10 +246,20 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
 
         try:
             from PIL import Image
-            img_path = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)),
-                "..", "assets", "items", f"{n.lower()}.png")
-            img_data = ctk.CTkImage(Image.open(img_path), size=(90, 90))
+            import urllib.request, io
+            image_url = inventory[n].get("image_url", "")
+            if not image_url:
+                raise ValueError("no image_url set")
+
+            if image_url.startswith("http://") or image_url.startswith("https://"):
+                # Cloudinary (or any remote URL)
+                with urllib.request.urlopen(image_url, timeout=5) as resp:
+                    img_data_raw = Image.open(io.BytesIO(resp.read()))
+            else:
+                # Local absolute path
+                img_data_raw = Image.open(image_url)
+
+            img_data = ctk.CTkImage(img_data_raw, size=(90, 90))
             ctk.CTkLabel(frame, image=img_data, text="", cursor="hand2").pack(pady=(8, 0))
         except Exception:
             ctk.CTkLabel(frame, text="[ NO IMAGE ]",
@@ -423,3 +432,26 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
                   ).pack(side="left", padx=3, expand=True, fill="x")
 
     update_ui()
+
+    # ── Inventory live-sync via Pusher ────────────────────────────────────────
+    def on_inventory_updated(data):
+        """
+        Called from a background thread when another laptop changes
+        prices, stock, or images. Payload is the full inventory snapshot
+        so no extra DB call is needed.
+        """
+        import json
+        if isinstance(data, str):
+            try: data = json.loads(data)
+            except: return
+        items = data.get("items", {})
+        for name, values in items.items():
+            if name in inventory:
+                inventory[name]["price"]     = values.get("price",     inventory[name]["price"])
+                inventory[name]["stock"]     = values.get("stock",     inventory[name]["stock"])
+                inventory[name]["image_url"] = values.get("image_url", inventory[name]["image_url"])
+        if window.winfo_exists():
+            window.after(0, update_ui)
+
+    from utils.pusher_client import subscribe
+    subscribe("inventory", "inventory-updated", on_inventory_updated)

@@ -1,12 +1,12 @@
 # ─── Global Color Palette ───────────────────────────────────────────────────
 class palette:
-    bg         = "#f0e6d7"  # tan
+    bg         = "#f8f9fa"  # Light Grey/White
     text       = "#2c3e50"  # Dark Blue/Grey
     primary    = "#e67e22"  # Orange
-    secondary  = "#885133"  # brown
+    secondary  = "#2ecc71"  # Green
     win95      = "#d0d0d0"  # Classic Grey
-    teal       = "#d44000"  # Warm orange
-    danger     = "#d62300"  # Red
+    teal       = "#1a3c40"  # Dark Teal
+    danger     = "#e74c3c"  # Red
 
     @classmethod
     def to_dict(cls):

@@ -1,0 +1,18 @@
+FAST FOOD ORPOSS
+MODE: KIOSK
+INVOICE: 20260513205858
+DATE: 2026-05-13 20:58:58
+-----------------------------------
+Ice Cream       1x  ₱   35.00
+Burger          1x  ₱   80.00
+Extra Gravy     1x  ₱   15.00
+Extra Rice      1x  ₱   20.00
+Pancake         1x  ₱   25.00
+-----------------------------------
+TOTAL:   ₱   175.00
+
+PAYMENT VIA E-WALLET
+REF: {ref}
+REF: KEMUVQUO
+
+THANK YOU!

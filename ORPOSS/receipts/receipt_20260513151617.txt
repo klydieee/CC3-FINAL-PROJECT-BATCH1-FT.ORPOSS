@@ -1,0 +1,18 @@
+FAST FOOD ORPOSS
+MODE: KIOSK
+INVOICE: 20260513151617
+DATE: 2026-05-13 15:16:17
+-----------------------------------
+Extra Rice      1x  ₱   20.00
+Extra Gravy     1x  ₱   15.00
+Chicken         1x  ₱   99.00
+Soda            1x  ₱   25.00
+Hotdog          1x  ₱   40.00
+-----------------------------------
+TOTAL:   ₱   199.00
+
+PAYMENT VIA E-WALLET
+REF: {ref}
+REF: MWCYTFUR
+
+THANK YOU!

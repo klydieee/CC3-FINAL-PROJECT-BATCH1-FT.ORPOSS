@@ -1,0 +1,15 @@
+FAST FOOD ORPOSS
+MODE: KIOSK
+INVOICE: 20260513205757
+DATE: 2026-05-13 20:57:57
+-----------------------------------
+Ice Cream       1x  ₱   35.00
+Burger          2x  ₱  160.00
+-----------------------------------
+TOTAL:   ₱   195.00
+
+PAYMENT VIA E-WALLET
+REF: {ref}
+REF: DHFEOMUW
+
+THANK YOU!

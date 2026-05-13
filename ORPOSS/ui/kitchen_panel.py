@@ -3,7 +3,7 @@ import customtkinter as ctk
 from tkinter import messagebox
 import sys
 
-from data.order_queue import get_orders, advance_order
+from db.orders_db import advance_order, get_orders
 from utils.helper import peso
 from utils.palette import palette
 from ui.window_utils import clear_main_window
@@ -189,3 +189,13 @@ def start_kitchen_panel(window):
             window.after(1500, refresh)
 
     refresh()
+
+    # ── Pusher real-time subscription ─────────────────────────────────────────
+    def on_pusher_event(data):
+        # Called from background thread — schedule UI refresh on main thread
+        if window.winfo_exists():
+            window.after(0, refresh)
+
+    from utils.pusher_client import subscribe
+    subscribe("orders", "new-order",    on_pusher_event)
+    subscribe("orders", "order-updated", on_pusher_event)

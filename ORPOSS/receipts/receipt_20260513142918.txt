@@ -1,0 +1,16 @@
+FAST FOOD ORPOSS
+MODE: KIOSK
+INVOICE: 20260513142918
+DATE: 2026-05-13 14:29:18
+-----------------------------------
+Extra Gravy     1x  ₱   15.00
+Chicken         1x  ₱   99.00
+Extra Rice      1x  ₱   20.00
+-----------------------------------
+TOTAL:   ₱   134.00
+
+PAYMENT VIA E-WALLET
+REF: {ref}
+REF: OLSBSDJF
+
+THANK YOU!

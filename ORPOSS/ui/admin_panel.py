@@ -1,11 +1,13 @@
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox, ttk, filedialog
 import os
 import re
+import threading
 
 from datetime import datetime, timedelta
-from data.inventory import inventory
+from db.products_db import inventory, update_image_url
 from utils.helper import peso
+from utils.image_storage import ImageStorage
 from ui.order_status_window import open_order_status_window
 from ui.window_utils import clear_main_window
 
@@ -37,15 +39,7 @@ def start_admin_panel(window, back_to_pos_callback):
     tk.Label(sidebar, text="ADMIN\nSYSTEM", fg="white", bg=SIDEBAR_COLOR,
              font=("Segoe UI", 16, "bold"), pady=40).pack()
 
-    tk.Button(sidebar, text="ORDER STATUS", bg=PRIMARY_COLOR, fg="white", relief="flat",
-              font=BTN_FONT, cursor="hand2",
-              command=lambda: open_order_status_window(window, allow_status_update=False)
-              ).pack(fill="x", padx=15, pady=(0, 10))
-
-    tk.Button(sidebar, text="STAFF ORDERS", bg=SECONDARY_COLOR, fg="white", relief="flat",
-              font=BTN_FONT, cursor="hand2",
-              command=lambda: open_order_status_window(window, allow_status_update=True)
-              ).pack(fill="x", padx=15, pady=(0, 10))
+    # ORDER STATUS / STAFF ORDERS moved to POS dashboard sidebar (admin-only)
 
     tk.Button(sidebar, text="RETURN TO POS", bg=ACCENT_COLOR, fg="white", relief="flat",
               font=BTN_FONT, cursor="hand2", command=back_to_pos_callback).pack(side="bottom", fill="x", padx=15,
@@ -214,11 +208,12 @@ def start_admin_panel(window, back_to_pos_callback):
         try:
             p = float(price_entry.get()) if price_entry.get() else None
             s = int(stock_entry.get()) if stock_entry.get() else None
+            from db.products_db import save_price, set_stock
             for item_id in selected:
                 name = tree.item(item_id)['values'][0]
                 key = next((k for k in inventory if k.upper() == name), name)
-                if p is not None: inventory[key]['price'] = p
-                if s is not None: inventory[key]['stock'] = s
+                if p is not None: save_price(key, p)
+                if s is not None: set_stock(key, s)
             save_to_disk();
             refresh_table()
             price_entry.delete(0, tk.END);
@@ -229,6 +224,131 @@ def start_admin_panel(window, back_to_pos_callback):
 
     tk.Button(edit_frame, text="SAVE CHANGES", bg=SECONDARY_COLOR, fg="white", font=BTN_FONT,
               relief="flat", pady=BTN_PAD_Y, cursor="hand2", command=save_edits).pack(fill="x")
+
+    # ── IMAGE STORAGE SECTION ─────────────────────────────────────────────────
+    img_store = ImageStorage()
+
+    img_frame = tk.LabelFrame(top_actions, text=" Product Image ", bg="white", padx=20, pady=15, font=BTN_FONT,
+                              relief="flat")
+    img_frame.pack(fill="x", pady=(0, 20))
+
+    # Storage mode toggle row
+    mode_row = tk.Frame(img_frame, bg="white")
+    mode_row.pack(fill="x", pady=(0, 10))
+
+    tk.Label(mode_row, text="Storage:", bg="white", font=("Segoe UI", 9)).pack(side="left")
+
+    mode_var = tk.StringVar(value=img_store.mode)
+
+    def _mode_label_color(mode):
+        return PRIMARY_COLOR if mode == "cloudinary" else PURPLE_COLOR
+
+    mode_indicator = tk.Label(
+        mode_row,
+        text=mode_var.get().upper(),
+        bg=_mode_label_color(mode_var.get()),
+        fg="white",
+        font=("Segoe UI", 8, "bold"),
+        padx=8, pady=3,
+        relief="flat"
+    )
+    mode_indicator.pack(side="left", padx=(6, 0))
+
+    cloudinary_ready_lbl = tk.Label(
+        mode_row,
+        text="✓ creds set" if img_store.cloudinary_ready else "⚠ no creds",
+        bg="white",
+        fg=SECONDARY_COLOR if img_store.cloudinary_ready else WARNING_COLOR,
+        font=("Segoe UI", 8)
+    )
+    cloudinary_ready_lbl.pack(side="left", padx=(6, 0))
+
+    def _switch_mode(new_mode):
+        try:
+            img_store.set_mode(new_mode)
+            mode_var.set(new_mode)
+            mode_indicator.config(text=new_mode.upper(), bg=_mode_label_color(new_mode))
+            # refresh creds status
+            cloudinary_ready_lbl.config(
+                text="✓ creds set" if img_store.cloudinary_ready else "⚠ no creds",
+                fg=SECONDARY_COLOR if img_store.cloudinary_ready else WARNING_COLOR
+            )
+        except RuntimeError as e:
+            messagebox.showerror("Storage Switch Failed", str(e))
+
+    btn_toggle_row = tk.Frame(img_frame, bg="white")
+    btn_toggle_row.pack(fill="x", pady=(0, 10))
+
+    tk.Button(
+        btn_toggle_row, text="☁  USE CLOUDINARY",
+        bg=PRIMARY_COLOR, fg="white", relief="flat",
+        font=("Segoe UI", 8, "bold"), padx=6, pady=5, cursor="hand2",
+        command=lambda: _switch_mode("cloudinary")
+    ).pack(side="left", expand=True, fill="x", padx=(0, 4))
+
+    tk.Button(
+        btn_toggle_row, text="💾  USE LOCAL",
+        bg=PURPLE_COLOR, fg="white", relief="flat",
+        font=("Segoe UI", 8, "bold"), padx=6, pady=5, cursor="hand2",
+        command=lambda: _switch_mode("local")
+    ).pack(side="left", expand=True, fill="x")
+
+    # Upload row
+    upload_status_lbl = tk.Label(img_frame, text="Select one item, then upload.", bg="white",
+                                 font=("Segoe UI", 8), fg="#7f8c8d", wraplength=230, justify="left")
+    upload_status_lbl.pack(anchor="w", pady=(0, 6))
+
+    def _upload_image():
+        selected = tree.selection()
+        if len(selected) != 1:
+            messagebox.showwarning("Selection", "Select exactly ONE item to upload an image for.")
+            return
+        raw_name = tree.item(selected[0])['values'][0]
+        item_key = next((k for k in inventory if k.upper() == raw_name), raw_name)
+
+        file_path = filedialog.askopenfilename(
+            title="Choose product image",
+            filetypes=[("Image files", "*.jpg *.jpeg *.png *.webp *.gif"), ("All files", "*.*")]
+        )
+        if not file_path:
+            return
+
+        upload_status_lbl.config(text="⏳ Uploading…", fg=PRIMARY_COLOR)
+        window.update_idletasks()
+
+        def _do_upload():
+            try:
+                url = img_store.upload(file_path, public_id=item_key)
+                update_image_url(item_key, url)
+                short = os.path.basename(url) if img_store.mode == "local" else url.split("/")[-1]
+                window.after(0, lambda: upload_status_lbl.config(
+                    text=f"Saved: {short}", fg=SECONDARY_COLOR))
+            except Exception as e:
+                window.after(0, lambda e=e: upload_status_lbl.config(text=f"Error: {e}", fg=ACCENT_COLOR))
+
+        threading.Thread(target=_do_upload, daemon=True).start()
+
+    tk.Button(img_frame, text="📁  UPLOAD IMAGE", bg=SIDEBAR_COLOR, fg="white", relief="flat",
+              font=BTN_FONT, pady=8, cursor="hand2", command=_upload_image).pack(fill="x")
+
+    def _remove_image():
+        selected = tree.selection()
+        if len(selected) != 1:
+            messagebox.showwarning("Selection", "Select exactly ONE item to remove its image.")
+            return
+        raw_name = tree.item(selected[0])['values'][0]
+        item_key = next((k for k in inventory if k.upper() == raw_name), raw_name)
+        if not messagebox.askyesno("Remove Image", f"Remove image for {item_key}?"):
+            return
+        try:
+            img_store.delete(item_key)
+            update_image_url(item_key, "")
+            upload_status_lbl.config(text="Image removed.", fg="#7f8c8d")
+        except Exception as exc:
+            messagebox.showerror("Error", str(exc))
+
+    tk.Button(img_frame, text="🗑  REMOVE IMAGE", bg=ACCENT_COLOR, fg="white", relief="flat",
+              font=("Segoe UI", 9, "bold"), pady=6, cursor="hand2", command=_remove_image).pack(fill="x", pady=(6, 0))
 
     # Bulk Section
     maint_frame = tk.LabelFrame(top_actions, text=" Inventory Tools ", bg="white", padx=20, pady=20, font=BTN_FONT,
@@ -244,7 +364,8 @@ def start_admin_panel(window, back_to_pos_callback):
 
     def restock_all():
         if messagebox.askyesno("Restock All", "Add 100 units to all items?"):
-            for item in inventory: inventory[item]['stock'] = inventory[item]['stock'] + 100
+            from db.products_db import restock_all as db_restock
+            db_restock(100)
             save_to_disk();
             refresh_table()
 
