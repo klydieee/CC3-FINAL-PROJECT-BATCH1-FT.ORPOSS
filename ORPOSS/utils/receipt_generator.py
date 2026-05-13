@@ -21,9 +21,14 @@ def generate_receipt_file(cash, change, invoice_no, total, summary, mode="counte
             f.write(f"{item:<15} {data['qty']}x  ₱{line_total:>8.2f}\n")
         f.write("-" * 35 + "\n")
         f.write(f"TOTAL:   ₱{total:>9.2f}\n")
-        f.write(f"CASH:    ₱{cash:>9.2f}\n")
-        f.write(f"CHANGE:  ₱{change:>9.2f}\n")
+
         if mode == "kiosk":
             ref = "".join(random.choices(string.ascii_uppercase, k=8))
-            f.write(f"\nPAYMENT VIA E-WALLET\nREF: {ref}\n")
+            f.write("\nPAYMENT VIA E-WALLET\nREF: {ref}\n")
+            f.write(f"REF: {ref}\n")
+        else:
+            f.write(f"CASH:    ₱{cash:>9.2f}\n")
+            f.write(f"CHANGE:  ₱{change:>9.2f}\n")
+
+
         f.write("\nTHANK YOU!\n")
