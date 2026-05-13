@@ -6,12 +6,13 @@ import re
 from datetime import datetime, timedelta
 from data.inventory import inventory
 from utils.helper import peso
+from ui.order_status_window import open_order_status_window
+from ui.window_utils import clear_main_window
 
 
 def start_admin_panel(window, back_to_pos_callback):
     # Clear window for Admin view
-    for widget in window.winfo_children():
-        widget.destroy()
+    clear_main_window(window)
 
     # --- Theme Configuration ---
     BG_COLOR = "#f8f9fa"
@@ -35,6 +36,16 @@ def start_admin_panel(window, back_to_pos_callback):
 
     tk.Label(sidebar, text="ADMIN\nSYSTEM", fg="white", bg=SIDEBAR_COLOR,
              font=("Segoe UI", 16, "bold"), pady=40).pack()
+
+    tk.Button(sidebar, text="ORDER STATUS", bg=PRIMARY_COLOR, fg="white", relief="flat",
+              font=BTN_FONT, cursor="hand2",
+              command=lambda: open_order_status_window(window, allow_status_update=False)
+              ).pack(fill="x", padx=15, pady=(0, 10))
+
+    tk.Button(sidebar, text="STAFF ORDERS", bg=SECONDARY_COLOR, fg="white", relief="flat",
+              font=BTN_FONT, cursor="hand2",
+              command=lambda: open_order_status_window(window, allow_status_update=True)
+              ).pack(fill="x", padx=15, pady=(0, 10))
 
     tk.Button(sidebar, text="RETURN TO POS", bg=ACCENT_COLOR, fg="white", relief="flat",
               font=BTN_FONT, cursor="hand2", command=back_to_pos_callback).pack(side="bottom", fill="x", padx=15,

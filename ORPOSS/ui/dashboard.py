@@ -9,12 +9,14 @@ import sys
 import os
 
 from data.inventory import inventory
+from data.order_queue import add_order
 from utils.helper import peso
 from utils.receipt_generator import generate_receipt_file
 from ui.receipt_popup import show_receipt_popup
 from ui.order_review import show_order_review
 from ui.admin_panel import start_admin_panel
 from ui.login import start_login
+from ui.window_utils import clear_main_window
 
 # ── palette ───────────────────────────────────────────────────────────────────
 BG_COLOR       = "#f8f9fa"
@@ -27,8 +29,7 @@ TEAL           = "#1a3c40"
 
 def start_dashboard(window, user_role="Client", order_type="Dine-In"):
     """Clears *window* and renders the full POS dashboard."""
-    for w in window.winfo_children():
-        w.destroy()
+    clear_main_window(window)
 
     window.attributes("-fullscreen", True)
     window.bind("<Escape>",
@@ -172,6 +173,7 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
             inv_no = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
             change = cash - total
             generate_receipt_file(cash, change, inv_no, total, summary, mode)
+            add_order(inv_no, order_type, mode, total, summary)
             cart.clear()
             cash_var.set("₱")
             save_inventory()
