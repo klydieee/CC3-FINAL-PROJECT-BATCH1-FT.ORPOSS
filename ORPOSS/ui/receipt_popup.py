@@ -17,10 +17,10 @@ def show_receipt_popup(parent_window, cash, change, invoice_no, total, summary, 
     popup.transient(parent_window)
     popup.grab_set()
 
-    # --- Header ---
+    # Header
     tk.Label(popup, text="FAST FOOD ORPOSS", font=("Courier", 14, "bold"), bg="white").pack(pady=(20, 5))
 
-    # Display Mode (Kiosk vs Counter) with color coding
+    # Display Mode (Kiosk vs Counter)
     mode_color = "#3498db" if mode.lower() == "kiosk" else "#2c3e50"
     tk.Label(popup, text=f"MODE: {mode.upper()}", font=("Courier", 10, "bold"),
              bg="white", fg=mode_color).pack()
@@ -28,7 +28,7 @@ def show_receipt_popup(parent_window, cash, change, invoice_no, total, summary, 
     tk.Label(popup, text=f"Invoice: {invoice_no}", font=("Courier", 9), bg="white").pack()
     tk.Label(popup, text="-" * 40, bg="white").pack()
 
-    # --- Itemized List Frame ---
+    # Itemized List Frame
     content_frame = tk.Frame(popup, bg="white")
     content_frame.pack(fill="x", padx=30)
 
@@ -53,14 +53,14 @@ def show_receipt_popup(parent_window, cash, change, invoice_no, total, summary, 
 
     tk.Label(popup, text="-" * 40, bg="white").pack(pady=5)
 
-    # --- Totals Section ---
+    # Totals Section
     footer_frame = tk.Frame(popup, bg="white")
     footer_frame.pack(fill="x", padx=30, pady=5)
 
     # Right-aligned financials
     tk.Label(footer_frame, text=f"TOTAL: {peso(total)}", font=("Courier", 12, "bold"), bg="white").pack(anchor="e")
 
-    # --- QR Code Section (Only for Kiosk/Digital modes) ---
+    # QR Code Section (Only for Kiosk/Digital modes)
     if mode.lower() == "kiosk":
         ref_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
         tk.Label(popup, text="-" * 40, bg="white").pack(pady=5)
@@ -88,7 +88,7 @@ def show_receipt_popup(parent_window, cash, change, invoice_no, total, summary, 
             print(f"QR Generation Error: {e}")
             tk.Label(popup, text="[ QR GENERATION ERROR ]", font=("Courier", 8), fg="red", bg="white").pack()
 
-    # --- Footer ---
+    # Footer
     tk.Label(popup, text="\nTHANK YOU!", font=("Courier", 9, "italic"), bg="white").pack(pady=10)
 
     # Done Button
