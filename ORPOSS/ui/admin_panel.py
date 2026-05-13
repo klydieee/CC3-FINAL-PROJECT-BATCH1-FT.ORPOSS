@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from data.inventory import inventory
 from utils.helper import peso
 
+
 def start_admin_panel(window, back_to_pos_callback):
     # Clear window for Admin view
     for widget in window.winfo_children():
