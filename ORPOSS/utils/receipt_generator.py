@@ -32,3 +32,4 @@ def generate_receipt_file(cash, change, invoice_no, total, summary, mode="counte
 
 
         f.write("\nTHANK YOU!\n")
+
