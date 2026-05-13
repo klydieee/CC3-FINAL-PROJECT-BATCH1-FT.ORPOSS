@@ -59,9 +59,6 @@ def show_receipt_popup(parent_window, cash, change, invoice_no, total, summary, 
 
     # Right-aligned financials
     tk.Label(footer_frame, text=f"TOTAL: {peso(total)}", font=("Courier", 12, "bold"), bg="white").pack(anchor="e")
-    tk.Label(footer_frame, text=f"CASH: {peso(cash)}", font=("Courier", 11), bg="white").pack(anchor="e")
-    tk.Label(footer_frame, text=f"CHANGE: {peso(change)}", font=("Courier", 11, "bold"),
-             fg="#27ae60", bg="white").pack(anchor="e")
 
     # --- QR Code Section (Only for Kiosk/Digital modes) ---
     if mode.lower() == "kiosk":
