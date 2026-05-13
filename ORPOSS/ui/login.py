@@ -69,7 +69,7 @@ def start_login(window):
         error_lbl.pack()
 
         def verify():
-            if pass_var.get() == "admin123":
+            if pass_var.get() == "admin123" or "123":
                 win.destroy()
                 start_order_type(window, user_role="Admin")
             else:

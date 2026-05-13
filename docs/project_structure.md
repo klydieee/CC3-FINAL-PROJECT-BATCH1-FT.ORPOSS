@@ -5,7 +5,7 @@ This document provides a map of the repository's layout and the purpose of each 
 ## File Tree
 
 ```text
-/ (Project Root)
+/Project Root
 ├── .git/                           # Hidden: Version control history
 ├── .gitignore                      # Configuration: Prevents tracking of temporary/junk files
 ├── LICENSE                         # Legal: MIT License (Permissions)
@@ -23,6 +23,8 @@ This document provides a map of the repository's layout and the purpose of each 
     ├── ui/                         # Sub-package: GUI components
     │   ├── login.py                # Authentication screen logic
     │   ├── dashboard.py            # Main POS interface and cart logic
+    │   ├── kitchen_panel.py        # Kitchen area procedural system
+    │   ├── user_queue.py           # User ordering guide for waiting and dining area
     │   ├── receipt_popup.py        # Modal window for transaction display
     │   ├── admin_panel.py          # Full access to Sales and Inventory
     │   ├── order_review.py         # Sub window to review order before payment
