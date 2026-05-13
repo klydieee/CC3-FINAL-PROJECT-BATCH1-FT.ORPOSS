@@ -1,4 +1,3 @@
-# ─── Global Color Palette ───────────────────────────────────────────────────
 class palette:
     bg         = "#f8f9fa"  # Light Grey/White
     text       = "#2c3e50"  # Dark Blue/Grey
@@ -10,7 +9,7 @@ class palette:
 
     @classmethod
     def to_dict(cls):
-        """Returns all colors as a dictionary if needed for iteration."""
+        """Returns"""
         return {
             "bg": cls.bg,
             "text": cls.text,

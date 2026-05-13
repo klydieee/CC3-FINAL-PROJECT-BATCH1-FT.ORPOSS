@@ -13,9 +13,9 @@ from db.orders_db import get_orders
 
 
 def main():
-    get_connection()   # load .env + test DB connection
+    get_connection()
     load_inventory()
-    get_orders()       # seed active orders from DB
+    get_orders()
 
     root = ctk.CTk()
     root.title("ORPOSS — Ordering & Point of Sales System")

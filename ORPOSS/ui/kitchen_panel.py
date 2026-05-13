@@ -37,7 +37,7 @@ def start_kitchen_panel(window):
     else:
         window.configure(bg=palette.bg)
 
-    # ── Header ────────────────────────────────────────────────────────────────
+    # Header
     header = tk.Frame(window, bg=palette.text, height=70)
     header.pack(fill="x")
     header.pack_propagate(False)
@@ -58,7 +58,7 @@ def start_kitchen_panel(window):
                                start_login(window)]
               ).pack(side="right", padx=12, pady=16)
 
-    # ── Body: 3 columns — Preparing | Serving | Claimed ───────────────────────
+    # PREP, SERVE, CLAIM
     body = tk.Frame(window, bg=palette.bg)
     body.pack(fill="both", expand=True, padx=20, pady=20)
 
@@ -73,7 +73,7 @@ def start_kitchen_panel(window):
         "serving":   palette.primary,
     }
 
-    col_frames  = {}   # scrollable inner frame per status
+    col_frames  = {}
     count_lbls  = {}
 
     for i, status in enumerate(columns):
@@ -110,7 +110,7 @@ def start_kitchen_panel(window):
         canvas.pack(side="left", fill="both", expand=True)
         col_frames[status] = (inner, canvas)
 
-    # ── Card builder ─────────────────────────────────────────────────────────
+    # Card builder
     def compact_items(summary):
         return "  |  ".join(f"{d['qty']}× {item}" for item, d in summary.items())
 
@@ -158,7 +158,7 @@ def start_kitchen_panel(window):
                           advance_order(inv), refresh()]
                       ).pack(fill="x", padx=10, pady=(0, 10))
 
-    # ── Refresh loop ─────────────────────────────────────────────────────────
+    # Refresh loop
     def refresh():
         for status in columns:
             inner, canvas = col_frames[status]
@@ -190,7 +190,7 @@ def start_kitchen_panel(window):
 
     refresh()
 
-    # ── Pusher real-time subscription ─────────────────────────────────────────
+    # Pusher real-time subscription
     def on_pusher_event(data):
         # Called from background thread — schedule UI refresh on main thread
         if window.winfo_exists():

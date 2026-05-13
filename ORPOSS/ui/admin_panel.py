@@ -10,48 +10,40 @@ from utils.helper import peso
 from utils.image_storage import ImageStorage
 from ui.order_status_window import open_order_status_window
 from ui.window_utils import clear_main_window
+from utils.palette import palette  # Global palette import
 
 
 def start_admin_panel(window, back_to_pos_callback):
     # Clear window for Admin view
     clear_main_window(window)
 
-    # --- Theme Configuration ---
-    BG_COLOR = "#f8f9fa"
-    SIDEBAR_COLOR = "#2c3e50"
-    TEXT_COLOR = "#2c3e50"
-    PRIMARY_COLOR = "#3498db"
-    SECONDARY_COLOR = "#2ecc71"
-    ACCENT_COLOR = "#e74c3c"
-    PURPLE_COLOR = "#9b59b6"
-    WARNING_COLOR = "#f39c12"
-
+    # Theme Configuration removed, replaced by palette calls
     BTN_FONT = ("Segoe UI", 10, "bold")
     BTN_PAD_Y = 12
 
-    window.configure(bg=BG_COLOR)
+    window.configure(bg=palette.bg)
 
-    # --- Sidebar ---
-    sidebar = tk.Frame(window, bg=SIDEBAR_COLOR, width=180)
+    # Sidebar
+    sidebar = tk.Frame(window, bg=palette.text, width=180)
     sidebar.pack(side="left", fill="y")
     sidebar.pack_propagate(False)
 
-    tk.Label(sidebar, text="ADMIN\nSYSTEM", fg="white", bg=SIDEBAR_COLOR,
+    tk.Label(sidebar, text="ADMIN\nSYSTEM", fg="white", bg=palette.text,
              font=("Segoe UI", 16, "bold"), pady=40).pack()
 
     # ORDER STATUS / STAFF ORDERS moved to POS dashboard sidebar (admin-only)
 
-    tk.Button(sidebar, text="RETURN TO POS", bg=ACCENT_COLOR, fg="white", relief="flat",
+    tk.Button(sidebar, text="RETURN TO POS", bg=palette.danger, fg="white", relief="flat",
               font=BTN_FONT, cursor="hand2", command=back_to_pos_callback).pack(side="bottom", fill="x", padx=15,
                                                                                 pady=30)
 
-    # --- Main Content Area ---
-    main_content = tk.Frame(window, bg=BG_COLOR)
+    # Main Content Area
+    main_content = tk.Frame(window, bg=palette.bg)
     main_content.pack(side="left", fill="both", expand=True, padx=40, pady=40)
 
-    # 1. INVENTORY TABLE SECTION
+    # INVENTORY TABLE SECTION
     inv_frame = tk.LabelFrame(main_content, text=" Inventory Management ", font=BTN_FONT,
-                              padx=20, pady=20, bg="white", fg=TEXT_COLOR, relief="flat")
+                              padx=20, pady=20, bg="white", fg=palette.text, relief="flat")
     inv_frame.pack(side="left", fill="both", expand=True)
 
     # Table Setup
@@ -88,12 +80,12 @@ def start_admin_panel(window, back_to_pos_callback):
             tree.insert("", "end", values=(name.upper(), peso(data['price']), stock), tags=(tag,))
         return low_count
 
-    # --- SALES HISTORY LOGIC ---
+    # SALES HISTORY LOGIC
     def open_history_log():
         log_win = tk.Toplevel(window)
         log_win.title("Transaction History")
         log_win.geometry("700x850")
-        log_win.configure(bg=BG_COLOR)
+        log_win.configure(bg=palette.bg)
         log_win.grab_set()
 
         count_var = tk.StringVar(value="1")
@@ -102,12 +94,12 @@ def start_admin_panel(window, back_to_pos_callback):
 
         header = tk.Frame(log_win, bg="white", pady=20, padx=30)
         header.pack(fill="x")
-        tk.Label(header, text="Sales History Log", font=("Segoe UI", 18, "bold"), bg="white", fg=SIDEBAR_COLOR).pack(
+        tk.Label(header, text="Sales History Log", font=("Segoe UI", 18, "bold"), bg="white", fg=palette.text).pack(
             side="left")
 
-        summary_card = tk.Frame(log_win, bg=SECONDARY_COLOR, padx=20, pady=15)
+        summary_card = tk.Frame(log_win, bg=palette.secondary, padx=20, pady=15)
         summary_card.pack(fill="x", padx=30, pady=20)
-        summary_lbl = tk.Label(summary_card, text="Total: ₱0.00", font=("Segoe UI", 14, "bold"), bg=SECONDARY_COLOR,
+        summary_lbl = tk.Label(summary_card, text="Total: ₱0.00", font=("Segoe UI", 14, "bold"), bg=palette.secondary,
                                fg="white")
         summary_lbl.pack()
 
@@ -155,7 +147,7 @@ def start_admin_panel(window, back_to_pos_callback):
                         continue
             summary_lbl.config(text=f"Total Revenue (Last {count_var.get()} {unit}): {peso(total)}")
 
-        tk.Button(filter_bar, text="APPLY", command=render_logs, bg=PRIMARY_COLOR, fg="white",
+        tk.Button(filter_bar, text="APPLY", command=render_logs, bg=palette.primary, fg="white",
                   font=("Segoe UI", 9, "bold"), relief="flat", padx=15).pack(side="left", padx=10)
 
         list_container = tk.Frame(log_win, bg="white")
@@ -166,7 +158,7 @@ def start_admin_panel(window, back_to_pos_callback):
         scroll_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
         canvas.create_window((0, 0), window=scroll_frame, anchor="nw", width=620)
         canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.pack(side="left", fill="both", expand=True);
+        canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
         def open_raw_file(filename):
@@ -181,12 +173,12 @@ def start_admin_panel(window, back_to_pos_callback):
 
         render_logs()
 
-    # 2. CONTROL PANEL (Right Side)
-    control_panel = tk.Frame(main_content, bg=BG_COLOR, width=300)
+    # CONTROL PANEL (Right Side)
+    control_panel = tk.Frame(main_content, bg=palette.bg, width=300)
     control_panel.pack(side="right", fill="y", padx=(40, 0))
     control_panel.pack_propagate(False)
 
-    top_actions = tk.Frame(control_panel, bg=BG_COLOR)
+    top_actions = tk.Frame(control_panel, bg=palette.bg)
     top_actions.pack(side="top", fill="both", expand=True)
 
     # Edit Section
@@ -195,11 +187,11 @@ def start_admin_panel(window, back_to_pos_callback):
     edit_frame.pack(fill="x", pady=(0, 20))
 
     tk.Label(edit_frame, text="New Price (₱):", bg="white").pack(anchor="w")
-    price_entry = tk.Entry(edit_frame, justify="center", font=("Segoe UI", 12), bg=BG_COLOR, relief="flat")
+    price_entry = tk.Entry(edit_frame, justify="center", font=("Segoe UI", 12), bg=palette.bg, relief="flat")
     price_entry.pack(fill="x", pady=(5, 15), ipady=8)
 
     tk.Label(edit_frame, text="New Stock Level:", bg="white").pack(anchor="w")
-    stock_entry = tk.Entry(edit_frame, justify="center", font=("Segoe UI", 12), bg=BG_COLOR, relief="flat")
+    stock_entry = tk.Entry(edit_frame, justify="center", font=("Segoe UI", 12), bg=palette.bg, relief="flat")
     stock_entry.pack(fill="x", pady=(5, 15), ipady=8)
 
     def save_edits():
@@ -214,18 +206,18 @@ def start_admin_panel(window, back_to_pos_callback):
                 key = next((k for k in inventory if k.upper() == name), name)
                 if p is not None: save_price(key, p)
                 if s is not None: set_stock(key, s)
-            save_to_disk();
+            save_to_disk()
             refresh_table()
-            price_entry.delete(0, tk.END);
+            price_entry.delete(0, tk.END)
             stock_entry.delete(0, tk.END)
             messagebox.showinfo("Success", "Inventory Updated.")
         except:
             messagebox.showerror("Error", "Invalid input.")
 
-    tk.Button(edit_frame, text="SAVE CHANGES", bg=SECONDARY_COLOR, fg="white", font=BTN_FONT,
+    tk.Button(edit_frame, text="SAVE CHANGES", bg=palette.secondary, fg="white", font=BTN_FONT,
               relief="flat", pady=BTN_PAD_Y, cursor="hand2", command=save_edits).pack(fill="x")
 
-    # ── IMAGE STORAGE SECTION ─────────────────────────────────────────────────
+    # IMAGE STORAGE SECTION
     img_store = ImageStorage()
 
     img_frame = tk.LabelFrame(top_actions, text=" Product Image ", bg="white", padx=20, pady=15, font=BTN_FONT,
@@ -241,7 +233,7 @@ def start_admin_panel(window, back_to_pos_callback):
     mode_var = tk.StringVar(value=img_store.mode)
 
     def _mode_label_color(mode):
-        return PRIMARY_COLOR if mode == "cloudinary" else PURPLE_COLOR
+        return palette.primary if mode == "cloudinary" else "#9b59b6"
 
     mode_indicator = tk.Label(
         mode_row,
@@ -258,8 +250,7 @@ def start_admin_panel(window, back_to_pos_callback):
         mode_row,
         text="✓ creds set" if img_store.cloudinary_ready else "⚠ no creds",
         bg="white",
-        fg=SECONDARY_COLOR if img_store.cloudinary_ready else WARNING_COLOR,
-        font=("Segoe UI", 8)
+        fg=palette.secondary if img_store.cloudinary_ready else "#f39c12"
     )
     cloudinary_ready_lbl.pack(side="left", padx=(6, 0))
 
@@ -271,7 +262,7 @@ def start_admin_panel(window, back_to_pos_callback):
             # refresh creds status
             cloudinary_ready_lbl.config(
                 text="✓ creds set" if img_store.cloudinary_ready else "⚠ no creds",
-                fg=SECONDARY_COLOR if img_store.cloudinary_ready else WARNING_COLOR
+                fg=palette.secondary if img_store.cloudinary_ready else "#f39c12"
             )
         except RuntimeError as e:
             messagebox.showerror("Storage Switch Failed", str(e))
@@ -281,14 +272,14 @@ def start_admin_panel(window, back_to_pos_callback):
 
     tk.Button(
         btn_toggle_row, text="☁  USE CLOUDINARY",
-        bg=PRIMARY_COLOR, fg="white", relief="flat",
+        bg=palette.primary, fg="white", relief="flat",
         font=("Segoe UI", 8, "bold"), padx=6, pady=5, cursor="hand2",
         command=lambda: _switch_mode("cloudinary")
     ).pack(side="left", expand=True, fill="x", padx=(0, 4))
 
     tk.Button(
         btn_toggle_row, text="💾  USE LOCAL",
-        bg=PURPLE_COLOR, fg="white", relief="flat",
+        bg="#9b59b6", fg="white", relief="flat",
         font=("Segoe UI", 8, "bold"), padx=6, pady=5, cursor="hand2",
         command=lambda: _switch_mode("local")
     ).pack(side="left", expand=True, fill="x")
@@ -313,7 +304,7 @@ def start_admin_panel(window, back_to_pos_callback):
         if not file_path:
             return
 
-        upload_status_lbl.config(text="⏳ Uploading…", fg=PRIMARY_COLOR)
+        upload_status_lbl.config(text="⏳ Uploading…", fg=palette.primary)
         window.update_idletasks()
 
         def _do_upload():
@@ -322,13 +313,13 @@ def start_admin_panel(window, back_to_pos_callback):
                 update_image_url(item_key, url)
                 short = os.path.basename(url) if img_store.mode == "local" else url.split("/")[-1]
                 window.after(0, lambda: upload_status_lbl.config(
-                    text=f"Saved: {short}", fg=SECONDARY_COLOR))
+                    text=f"Saved: {short}", fg=palette.secondary))
             except Exception as e:
-                window.after(0, lambda e=e: upload_status_lbl.config(text=f"Error: {e}", fg=ACCENT_COLOR))
+                window.after(0, lambda e=e: upload_status_lbl.config(text=f"Error: {e}", fg=palette.danger))
 
         threading.Thread(target=_do_upload, daemon=True).start()
 
-    tk.Button(img_frame, text="📁  UPLOAD IMAGE", bg=SIDEBAR_COLOR, fg="white", relief="flat",
+    tk.Button(img_frame, text="📁  UPLOAD IMAGE", bg=palette.text, fg="white", relief="flat",
               font=BTN_FONT, pady=8, cursor="hand2", command=_upload_image).pack(fill="x")
 
     def _remove_image():
@@ -347,7 +338,7 @@ def start_admin_panel(window, back_to_pos_callback):
         except Exception as exc:
             messagebox.showerror("Error", str(exc))
 
-    tk.Button(img_frame, text="🗑  REMOVE IMAGE", bg=ACCENT_COLOR, fg="white", relief="flat",
+    tk.Button(img_frame, text="🗑  REMOVE IMAGE", bg=palette.danger, fg="white", relief="flat",
               font=("Segoe UI", 9, "bold"), pady=6, cursor="hand2", command=_remove_image).pack(fill="x", pady=(6, 0))
 
     # Bulk Section
@@ -356,30 +347,30 @@ def start_admin_panel(window, back_to_pos_callback):
     maint_frame.pack(fill="x", pady=(0, 20))
 
     # NEW: Filter Buttons for Low Stock
-    tk.Button(maint_frame, text="SHOW ALL ITEMS", bg=SIDEBAR_COLOR, fg="white", font=("Segoe UI", 9, "bold"),
+    tk.Button(maint_frame, text="SHOW ALL ITEMS", bg=palette.text, fg="white", font=("Segoe UI", 9, "bold"),
               relief="flat", pady=8, command=lambda: refresh_table(False)).pack(fill="x", pady=(0, 5))
 
-    tk.Button(maint_frame, text="SHOW LOW STOCK", bg=WARNING_COLOR, fg="white", font=("Segoe UI", 9, "bold"),
+    tk.Button(maint_frame, text="SHOW LOW STOCK", bg="#f39c12", fg="white", font=("Segoe UI", 9, "bold"),
               relief="flat", pady=8, command=lambda: refresh_table(True)).pack(fill="x", pady=(0, 15))
 
     def restock_all():
         if messagebox.askyesno("Restock All", "Add 100 units to all items?"):
             from db.products_db import restock_all as db_restock
             db_restock(100)
-            save_to_disk();
+            save_to_disk()
             refresh_table()
 
-    tk.Button(maint_frame, text="RESTOCK ALL (100)", bg=PURPLE_COLOR, fg="white", font=BTN_FONT,
+    tk.Button(maint_frame, text="RESTOCK ALL (100)", bg="#9b59b6", fg="white", font=BTN_FONT,
               relief="flat", pady=BTN_PAD_Y, cursor="hand2", command=restock_all).pack(fill="x")
 
     # Bottom Reports Section
-    reports_frame = tk.Frame(control_panel, bg=BG_COLOR)
+    reports_frame = tk.Frame(control_panel, bg=palette.bg)
     reports_frame.pack(side="bottom", fill="x")
 
-    tk.Label(reports_frame, text="Reports & Logs", font=BTN_FONT, bg=BG_COLOR, fg=SIDEBAR_COLOR).pack(anchor="w",
+    tk.Label(reports_frame, text="Reports & Logs", font=BTN_FONT, bg=palette.bg, fg=palette.text).pack(anchor="w",
                                                                                                       pady=(0, 5))
 
-    tk.Button(reports_frame, text="VIEW SALES HISTORY", bg=PRIMARY_COLOR, fg="white", font=BTN_FONT,
+    tk.Button(reports_frame, text="VIEW SALES HISTORY", bg=palette.primary, fg="white", font=BTN_FONT,
               relief="flat", pady=BTN_PAD_Y, cursor="hand2", command=open_history_log).pack(fill="x")
 
     # Initial Table Load & Alert
