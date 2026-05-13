@@ -3,13 +3,11 @@ class palette:
     bg         = "#f8f9fa"  # Light Grey/White
     text       = "#2c3e50"  # Dark Blue/Grey
     primary    = "#e67e22"  # Orange
-    secondary  = "#2ecc71"  # Green
+    secondary  = "#885133"  # brown
     win95      = "#d0d0d0"  # Classic Grey
     teal       = "#1a3c40"  # Dark Teal
-    danger     = "#e74c3c"  # Red
+    danger     = "#d62300"  # Red
     tan        = "#f0e6d7"  # tan
-    blood      = "d62300"   # red
-    brown      = "885133"   # brown
 
     @classmethod
     def to_dict(cls):
