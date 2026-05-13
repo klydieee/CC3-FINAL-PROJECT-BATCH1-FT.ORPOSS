@@ -17,6 +17,7 @@ from ui.order_review import show_order_review
 from ui.admin_panel import start_admin_panel
 from ui.login import start_login
 from ui.window_utils import clear_main_window
+from ui.order_status_window import open_order_status_window
 
 # ── palette ───────────────────────────────────────────────────────────────────
 BG_COLOR       = "#f8f9fa"
@@ -191,9 +192,25 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
     sidebar.pack(side="left", fill="y")
     sidebar.pack_propagate(False)
 
-    tk.Label(sidebar, text="Customer\nWindow",
+    tk.Label(sidebar, text="ORPOSS",
              fg="white", bg=TEXT_COLOR,
-             font=("Segoe UI", 16, "bold"), justify="center").pack(pady=50)
+             font=("Segoe UI", 18, "bold")).pack(pady=(30, 4))
+    tk.Label(sidebar, text="POS Terminal",
+             fg="#95a5a6", bg=TEXT_COLOR,
+             font=("Segoe UI", 9)).pack(pady=(0, 30))
+
+    if user_role == "Admin":
+        tk.Button(sidebar, text="📺  CUSTOMER\n    SCREEN",
+                  bg="#34495e", fg="white", font=("Segoe UI", 8, "bold"),
+                  relief="flat", cursor="hand2", pady=10,
+                  command=lambda: open_order_status_window(window, allow_status_update=False)
+                  ).pack(fill="x", padx=15, pady=(0, 8))
+
+        tk.Button(sidebar, text="🍳  KITCHEN\n    PANEL",
+                  bg="#34495e", fg="white", font=("Segoe UI", 8, "bold"),
+                  relief="flat", cursor="hand2", pady=10,
+                  command=lambda: open_order_status_window(window, allow_status_update=True)
+                  ).pack(fill="x", padx=15)
 
     if user_role == "Admin":
         tk.Button(

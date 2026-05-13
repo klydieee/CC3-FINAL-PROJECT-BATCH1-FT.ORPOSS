@@ -5,7 +5,7 @@ class palette:
     primary    = "#e67e22"  # Orange
     secondary  = "#2ecc71"  # Green
     win95      = "#d0d0d0"  # Classic Grey
-    teal       = "#1a3c40"  # Dark Teal
+    teal       = "#1a3c40"  # Dark T eal
     danger     = "#e74c3c"  # Red
 
     @classmethod

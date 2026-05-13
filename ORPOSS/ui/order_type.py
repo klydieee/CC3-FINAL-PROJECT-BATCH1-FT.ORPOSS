@@ -48,11 +48,15 @@ def start_order_type(window, user_role="Client"):
         tk.Label(inner, text=label, font=("Helvetica", 16, "bold"),
                  bg=color, fg="white").pack(pady=(8, 0))
 
-        def on_enter(e): f.config(bg=hover); inner.config(bg=hover)
-        def on_leave(e): f.config(bg=color); inner.config(bg=hover if False else color)
+        all_w = [f, inner] + inner.winfo_children()
+
+        def on_enter(e, ws=all_w, h=hover):
+            for w in ws: w.config(bg=h)
+        def on_leave(e, ws=all_w, col=color):
+            for w in ws: w.config(bg=col)
         def on_click(e): start_dashboard(window, user_role=user_role, order_type=order_type)
 
-        for w in [f, inner] + inner.winfo_children():
+        for w in all_w:
             w.bind("<Enter>", on_enter)
             w.bind("<Leave>", on_leave)
             w.bind("<Button-1>", on_click)
