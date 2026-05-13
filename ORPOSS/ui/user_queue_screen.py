@@ -3,3 +3,5 @@ import customtkinter as ctk
 from tkinter import messagebox
 import sys
 import os
+
+from ui.dashboard import start_dashboard
