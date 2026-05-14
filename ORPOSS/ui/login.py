@@ -168,11 +168,11 @@ def start_login(window):
         win.geometry(f"+{x}+{y}")
 
         icon_frame = tk.Frame(win, bg=palette.bg)
-        icon_frame.pack(fill="x", pady=(30, 10))
+        icon_frame.pack(fill="x", pady=(30, 10,))
 
         tk.Label(
             icon_frame,
-            text="🖥️",
+            text="     🖥️",
             font=("Arial", 30),
             bg=palette.bg
         ).pack(anchor="center")

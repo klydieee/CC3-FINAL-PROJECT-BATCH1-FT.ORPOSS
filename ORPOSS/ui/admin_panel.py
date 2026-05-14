@@ -423,11 +423,11 @@ def start_admin_panel(window, back_to_pos_callback):
     btn_toggle_row = tk.Frame(img_frame, bg="white")
     btn_toggle_row.pack(fill="x", pady=(0, 10))
 
-    tk.Button(btn_toggle_row, text="☁  USE CLOUDINARY", bg=palette.primary, fg="white",
+    tk.Button(btn_toggle_row, text="☁ USE CLOUDINARY", bg=palette.primary, fg="white",
               relief="flat", font=("Segoe UI", 8, "bold"), padx=6, pady=5, cursor="hand2",
               command=lambda: _switch_mode("cloudinary")).pack(side="left", expand=True, fill="x", padx=(0, 4))
 
-    tk.Button(btn_toggle_row, text="💾  USE LOCAL", bg="#9b59b6", fg="white",
+    tk.Button(btn_toggle_row, text="💾 USE LOCAL", bg="#9b59b6", fg="white",
               relief="flat", font=("Segoe UI", 8, "bold"), padx=6, pady=5, cursor="hand2",
               command=lambda: _switch_mode("local")).pack(side="left", expand=True, fill="x")
 
@@ -463,7 +463,7 @@ def start_admin_panel(window, back_to_pos_callback):
 
         threading.Thread(target=_do_upload, daemon=True).start()
 
-    tk.Button(img_frame, text="📁  UPLOAD IMAGE", bg=palette.text, fg="white", relief="flat",
+    tk.Button(img_frame, text="📁 UPLOAD IMAGE", anchor="center", bg=palette.text, fg="white", relief="flat",
               font=BTN_FONT, pady=8, cursor="hand2", command=_upload_image).pack(fill="x")
 
     def _remove_image():
@@ -482,7 +482,7 @@ def start_admin_panel(window, back_to_pos_callback):
         except Exception as exc:
             messagebox.showerror("Error", str(exc))
 
-    tk.Button(img_frame, text="🗑  REMOVE IMAGE", bg=palette.danger, fg="white", relief="flat",
+    tk.Button(img_frame, text="🗑 REMOVE IMAGE", anchor="center", bg=palette.danger, fg="white", relief="flat",
               font=("Segoe UI", 9, "bold"), pady=6, cursor="hand2",
               command=_remove_image).pack(fill="x", pady=(6, 0))
 
@@ -570,7 +570,7 @@ def start_admin_panel(window, back_to_pos_callback):
         refresh_table()
         messagebox.showinfo("Deleted", f"{len(names)} item(s) removed.")
 
-    tk.Button(product_frame, text="➕  ADD PRODUCT", bg=palette.secondary, fg="white",
+    tk.Button(product_frame, text="➕ ADD PRODUCT", bg=palette.secondary, fg="white",
               font=BTN_FONT, relief="flat", pady=BTN_PAD_Y, cursor="hand2",
               command=add_product).pack(fill="x", pady=(0, 8))
 
@@ -584,11 +584,11 @@ def start_admin_panel(window, back_to_pos_callback):
                                   padx=20, pady=20, font=BTN_FONT, relief="flat")
     reports_frame.pack(fill="x", pady=(0, 20))
 
-    tk.Button(reports_frame, text="📋  VIEW SALES HISTORY", bg=palette.primary, fg="white",
+    tk.Button(reports_frame, text="📋 VIEW SALES HISTORY", bg=palette.primary, fg="white",
               font=BTN_FONT, relief="flat", pady=BTN_PAD_Y, cursor="hand2",
               command=open_history_log).pack(fill="x", pady=(0, 8))
 
-    tk.Button(reports_frame, text="📊  SALES ANALYTICS", bg=palette.secondary, fg="white",
+    tk.Button(reports_frame, text="📊 SALES ANALYTICS", bg=palette.secondary, fg="white",
               font=BTN_FONT, relief="flat", pady=BTN_PAD_Y, cursor="hand2",
               command=open_sales_chart).pack(fill="x")
 
