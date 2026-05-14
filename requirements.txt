@@ -5,11 +5,8 @@
 # No external dependencies (pip packages) are required.
 
 # Core modules used:
-tkinter
 customtkinter
 qrcode
-json
-os
 datetime
 ImageTk
 Image
