@@ -1,6 +1,7 @@
 import tkinter as tk
 import customtkinter as ctk
 from tkinter import messagebox
+from PIL import Image, ImageTk
 
 from ui.order_type import start_order_type
 from ui.kitchen_panel import start_kitchen_panel
@@ -19,7 +20,7 @@ def start_login(window):
     tk.Label(
         container,
         text="ORPOSS",
-        font=("Helvetica", 52, "bold"),
+        font=("Verdana", 52, "bold"),
         bg=palette.bg,
         fg=palette.text
     ).pack()
