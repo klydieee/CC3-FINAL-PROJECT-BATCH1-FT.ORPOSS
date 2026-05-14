@@ -96,3 +96,30 @@ def update_image_url(name, image_url):
             execute("UPDATE order_items SET image_url=%s WHERE id=%s",
                     (image_url, item["id"]))
             _push_inventory()
+
+
+def add_product(name, price, stock=50):
+    """Add a new product to DB and local inventory. Returns True on success."""
+    if name in inventory:
+        return False, "Product already exists."
+    new_id = None
+    if is_online():
+        new_id = execute(
+            "INSERT INTO order_items (name, price, stock) VALUES (%s, %s, %s)",
+            (name, price, stock)
+        )
+    inventory[name] = {"id": new_id, "price": float(price), "stock": stock, "image_url": ""}
+    _push_inventory()
+    return True, "Product added."
+
+
+def delete_product(name):
+    """Remove a product from DB and local inventory. Returns True on success."""
+    item = inventory.get(name)
+    if not item:
+        return False, "Product not found."
+    if item.get("id") and is_online():
+        execute("DELETE FROM order_items WHERE id=%s", (item["id"],))
+    del inventory[name]
+    _push_inventory()
+    return True, "Product deleted."

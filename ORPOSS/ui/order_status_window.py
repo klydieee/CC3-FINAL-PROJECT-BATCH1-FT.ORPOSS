@@ -4,35 +4,34 @@ from db.orders_db import advance_order, get_orders
 from utils.helper import peso
 from utils.palette import palette
 
-# staff window
 STATUS_COLORS = {
     "preparing": palette.primary,
-    "serving": palette.secondary,
-    "claimed": palette.text,
+    "serving":   palette.secondary,
+    "claimed":   palette.text,
 }
 STATUS_LABELS = {
     "preparing": "PREPARING",
-    "serving": "SERVING",
-    "claimed": "CLAIMED",
+    "serving":   "SERVING",
+    "claimed":   "CLAIMED",
 }
-# staff buttons
 NEXT_BUTTONS = {
     "preparing": "MARK SERVING",
-    "serving": "MARK CLAIMED",
+    "serving":   "MARK CLAIMED",
 }
 
-# Staff/Customer WINDOWS
+# Poll interval — Pusher handles instant updates; this is just a safety net
+_POLL_MS = 10_000   # 10 seconds (was 1500ms — reduces DB hits & Pusher credit usage)
+
+
 def open_order_status_window(parent_window, allow_status_update=False):
     attr_name = "_staff_order_window" if allow_status_update else "_order_status_window"
-    existing = getattr(parent_window, attr_name, None)
+    existing  = getattr(parent_window, attr_name, None)
     if existing and existing.winfo_exists():
         existing.lift()
         existing.focus_force()
         return existing
 
     win = tk.Toplevel(parent_window)
-
-    # KEEP WINDOWWS
     win._keep_on_screen_change = True
     setattr(parent_window, attr_name, win)
     win.title("Staff Order Window" if allow_status_update else "Customer Order Window")
@@ -46,30 +45,25 @@ def open_order_status_window(parent_window, allow_status_update=False):
 
     win.protocol("WM_DELETE_WINDOW", cleanup)
 
-    # --- Header ---
+    # ── Header ────────────────────────────────────────────────────────────────
     header = tk.Frame(win, bg=palette.text, height=82)
     header.pack(fill="x")
     header.pack_propagate(False)
-    title = "STAFF ORDER WINDOW" if allow_status_update else "CUSTOMER ORDER WINDOW"
+    title    = "STAFF ORDER WINDOW"     if allow_status_update else "CUSTOMER ORDER WINDOW"
     subtitle = "MANAGE CUSTOMER ORDERS" if allow_status_update else "PREPARING / SERVING"
-    tk.Label(header, text=title,
-             font=("Segoe UI", 24, "bold"), fg=palette.bg, bg=palette.text
-             ).pack(side="left", padx=28)
-    tk.Label(header, text=subtitle,
-             font=("Segoe UI", 12, "bold"), fg=palette.bg, bg=palette.text
-             ).pack(side="right", padx=28)
+    tk.Label(header, text=title,    font=("Segoe UI", 24, "bold"), fg=palette.bg, bg=palette.text).pack(side="left",  padx=28)
+    tk.Label(header, text=subtitle, font=("Segoe UI", 12, "bold"), fg=palette.bg, bg=palette.text).pack(side="right", padx=28)
 
     body = tk.Frame(win, bg=palette.bg)
     body.pack(fill="both", expand=True, padx=18, pady=18)
 
-    # order status
     visible_statuses = ("preparing", "serving", "claimed") if allow_status_update else ("preparing", "serving")
     for col in range(len(visible_statuses)):
         body.grid_columnconfigure(col, weight=1)
     body.grid_rowconfigure(1, weight=1)
 
     count_labels = {}
-    list_frames = {}
+    list_frames  = {}
 
     for col, status in enumerate(visible_statuses):
         count_labels[status] = tk.Label(
@@ -92,17 +86,14 @@ def open_order_status_window(parent_window, allow_status_update=False):
         tk.Label(box, text=text, font=("Segoe UI", 12, "italic"),
                  fg=palette.teal, bg=palette.text, pady=38).pack(fill="x")
 
-    # ORDER# ON SCREENS
     def make_card(parent, order, accent):
         if not allow_status_update:
             card = tk.Frame(parent, bg=accent, bd=0, relief="flat")
             card.pack(fill="x", padx=10, pady=10)
             tk.Label(card, text=f"ORDER #{order['invoice_no'][-4:]}",
-                     font=("Segoe UI", 34, "bold"), fg=palette.text, bg=accent,
-                     pady=22).pack(fill="x")
+                     font=("Segoe UI", 34, "bold"), fg=palette.text, bg=accent, pady=22).pack(fill="x")
             tk.Label(card, text=STATUS_LABELS[order["status"]],
-                     font=("Segoe UI", 12, "bold"), fg=palette.text, bg=accent,
-                     pady=6).pack(fill="x")
+                     font=("Segoe UI", 12, "bold"), fg=palette.text, bg=accent, pady=6).pack(fill="x")
             return
 
         card = tk.Frame(parent, bg=palette.text, bd=1, relief="solid")
@@ -111,8 +102,7 @@ def open_order_status_window(parent_window, allow_status_update=False):
         top = tk.Frame(card, bg="white")
         top.pack(fill="x", padx=14, pady=(12, 2))
         tk.Label(top, text=f"ORDER #{order['invoice_no'][-4:]}",
-                 font=("Segoe UI", 18, "bold"), fg=accent, bg="white"
-                 ).pack(side="left")
+                 font=("Segoe UI", 18, "bold"), fg=accent, bg="white").pack(side="left")
         tk.Label(top, text=order["status"].upper(),
                  font=("Segoe UI", 9, "bold"), fg="white", bg=accent,
                  padx=8, pady=3).pack(side="right")
@@ -135,23 +125,26 @@ def open_order_status_window(parent_window, allow_status_update=False):
         tk.Label(bottom, text=time_text, font=("Segoe UI", 8),
                  fg=palette.teal, bg="white").pack(side="left")
 
-        button_text = NEXT_BUTTONS.get(order["status"])
-        if allow_status_update and button_text:
-            tk.Button(bottom, text=button_text, font=("Segoe UI", 8, "bold"),
-                      bg=palette.secondary, fg="white", relief="flat", cursor="hand2",
+        if allow_status_update and order["status"] in NEXT_BUTTONS:
+            tk.Button(bottom, text=NEXT_BUTTONS[order["status"]],
+                      font=("Segoe UI", 8, "bold"), bg=palette.secondary, fg="white",
+                      relief="flat", cursor="hand2",
                       command=lambda inv=order["invoice_no"]: [advance_order(inv), refresh()]
                       ).pack(side="right")
 
-    # AUTO REFRESH WINDOWS FOR STAFFS/CUSTOMERS
+    _poll_id = [None]
+
     def refresh():
+        if not win.winfo_exists():
+            return
         for frame in list_frames.values():
             for child in frame.winfo_children():
                 child.destroy()
 
         empty_text = {
             "preparing": "No orders being prepared",
-            "serving": "No orders ready to serve",
-            "claimed": "No claimed orders yet",
+            "serving":   "No orders ready to serve",
+            "claimed":   "No claimed orders yet",
         }
         for status in visible_statuses:
             status_orders = get_orders(status)
@@ -162,12 +155,13 @@ def open_order_status_window(parent_window, allow_status_update=False):
             else:
                 make_empty(list_frames[status], empty_text[status])
 
-        if win.winfo_exists():
-            win.after(1500, refresh)
+        if _poll_id[0]:
+            win.after_cancel(_poll_id[0])
+        _poll_id[0] = win.after(_POLL_MS, refresh)
 
     refresh()
 
-    # ── Pusher real-time subscription ─────────────────────────────────────────
+    # ── Pusher: triggers immediate refresh on order events ────────────────────
     def on_pusher_event(data):
         if win.winfo_exists():
             win.after(0, refresh)

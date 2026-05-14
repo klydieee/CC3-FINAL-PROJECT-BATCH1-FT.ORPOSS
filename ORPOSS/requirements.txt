@@ -6,3 +6,4 @@ pusher
 pysher
 python-dotenv
 cloudinary
+matplotlib
