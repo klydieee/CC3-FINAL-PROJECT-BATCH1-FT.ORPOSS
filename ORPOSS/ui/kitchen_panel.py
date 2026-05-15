@@ -19,7 +19,7 @@ NEXT_BTN = {
 }
 
 def start_kitchen_panel(window):
-    from ui.login import start_login
+    from ui.launcher import start_launcher
 
     clear_main_window(window)
     window.attributes("-fullscreen", True)
@@ -50,12 +50,12 @@ def start_kitchen_panel(window):
              font=("Segoe UI", 11), fg=palette.bg, bg=palette.text
              ).pack(side="right", padx=28)
 
-    tk.Button(header, text="← BACK TO LOGIN",
+    tk.Button(header, text="← BACK TO LAUNCHER",
               font=("Segoe UI", 9, "bold"),
               bg=palette.danger, fg="white", relief="flat", cursor="hand2",
               padx=12,
               command=lambda: [window.attributes("-fullscreen", False),
-                               start_login(window)]
+                               start_launcher(window)]
               ).pack(side="right", padx=12, pady=16)
 
     # PREP, SERVE, CLAIM
@@ -158,12 +158,24 @@ def start_kitchen_panel(window):
                           advance_order(inv), refresh()]
                       ).pack(fill="x", padx=10, pady=(0, 10))
 
+    _poll_id = [None]
+
     # Refresh loop
     def refresh():
+        if not window.winfo_exists():
+            return
         for status in columns:
             inner, canvas = col_frames[status]
-            for w in inner.winfo_children():
-                w.destroy()
+            # Guard against destroyed widgets during window close
+            try:
+                children = inner.winfo_children()
+            except tk.TclError:
+                return
+            for w in children:
+                try:
+                    w.destroy()
+                except tk.TclError:
+                    pass
 
             orders = get_orders(status)
             count_lbls[status].config(text=str(len(orders)))
@@ -182,11 +194,15 @@ def start_kitchen_panel(window):
                 for order in orders:
                     make_card(inner, order)
 
-            inner.update_idletasks()
-            canvas.configure(scrollregion=canvas.bbox("all"))
+            try:
+                inner.update_idletasks()
+                canvas.configure(scrollregion=canvas.bbox("all"))
+            except tk.TclError:
+                pass
 
-        if window.winfo_exists():
-            window.after(1500, refresh)
+        if _poll_id[0]:
+            window.after_cancel(_poll_id[0])
+        _poll_id[0] = window.after(10_000, refresh)  # 10s — Pusher handles real-time
 
     refresh()
 

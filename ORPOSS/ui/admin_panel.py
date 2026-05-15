@@ -29,7 +29,7 @@ def start_admin_panel(window, back_to_pos_callback):
     tk.Label(sidebar, text="ADMIN\nSYSTEM", fg="white", bg=palette.text,
              font=("Segoe UI", 16, "bold"), pady=40).pack()
 
-    tk.Button(sidebar, text="RETURN TO POS", bg=palette.danger, fg="white", relief="flat",
+    tk.Button(sidebar, text="RETURN TO LAUNCHER", bg=palette.danger, fg="white", relief="flat",
               font=BTN_FONT, cursor="hand2", command=back_to_pos_callback).pack(
               side="bottom", fill="x", padx=15, pady=30)
 
@@ -39,17 +39,24 @@ def start_admin_panel(window, back_to_pos_callback):
 
     # Left: Inventory table
     inv_frame = tk.LabelFrame(main_content, text=" Inventory Management ", font=BTN_FONT,
-                              padx=20, pady=20, bg="white", fg=palette.text, relief="flat")
+                          padx=20, pady=20, bg="white", fg=palette.text, relief="flat")
     inv_frame.pack(side="left", fill="both", expand=True)
 
-    tree = ttk.Treeview(inv_frame, columns=("name", "price", "stock"), show="headings", selectmode="extended")
+    # 1. Added "cost" to columns
+    tree = ttk.Treeview(inv_frame, columns=("name", "price", "cost", "stock"), show="headings", selectmode="extended")
     tree.heading("name",  text="ITEM NAME")
     tree.heading("price", text="UNIT PRICE")
+    tree.heading("cost",  text="UNIT COST") # Added heading
     tree.heading("stock", text="STOCK COUNT")
-    tree.column("name",  width=250, anchor="w")
-    tree.column("price", width=120, anchor="center")
-    tree.column("stock", width=120, anchor="center")
+
+    tree.column("name",  width=200, anchor="w")
+    tree.column("price", width=100, anchor="center")
+    tree.column("cost",  width=100, anchor="center") # Added column
+    tree.column("stock", width=100, anchor="center")
+
+    # Visual tags for the Admin
     tree.tag_configure("lowstock", background="#ff7675", foreground="white")
+    tree.tag_configure("lowmargin", background="#ffeaa7") # Pale yellow for low profit
     tree.pack(fill="both", expand=True)
 
     def save_to_disk():
@@ -64,15 +71,33 @@ def start_admin_panel(window, back_to_pos_callback):
     def refresh_table(filter_low=False):
         for i in tree.get_children():
             tree.delete(i)
+        
         low_count = 0
+        # Assuming inventory is a dict: {name: {'price': 0, 'cost': 0, 'stock': 0}}
         for name, data in inventory.items():
             stock = data['stock']
-            tag   = "lowstock" if stock < 10 else ""
+            price = data['price']
+            cost  = data.get('cost', 0) # Use .get() in case cost isn't set yet
+            profit = price - cost
+            
+            # Determine Tags
+            tags = []
             if stock < 10:
                 low_count += 1
+                tags.append("lowstock")
+            
+            # Highlight if profit is thin (less than 5)
+            if profit < 5:
+                tags.append("lowmargin")
+                
             if filter_low and stock >= 10:
                 continue
-            tree.insert("", "end", values=(name.upper(), peso(data['price']), stock), tags=(tag,))
+                
+            # Insert into tree with all 4 columns: Name, Price, Cost, Stock
+            tree.insert("", "end", 
+                        values=(name.upper(), peso(price), peso(cost), stock), 
+                        tags=tuple(tags))
+                        
         return low_count
 
     # ── Sales History popup ───────────────────────────────────────────────────
@@ -89,14 +114,12 @@ def start_admin_panel(window, back_to_pos_callback):
 
         header = tk.Frame(log_win, bg="white", pady=20, padx=30)
         header.pack(fill="x")
-        tk.Label(header, text="Sales History Log", font=("Segoe UI", 18, "bold"),
+        tk.Label(header, text="Sales & Profit Log", font=("Segoe UI", 18, "bold"),
                  bg="white", fg=palette.text).pack(side="left")
 
+        # UPDATED: Summary card now shows both Revenue and Profit
         summary_card = tk.Frame(log_win, bg=palette.secondary, padx=20, pady=15)
         summary_card.pack(fill="x", padx=30, pady=20)
-        summary_lbl = tk.Label(summary_card, text="Total: ₱0.00",
-                               font=("Segoe UI", 14, "bold"), bg=palette.secondary, fg="white")
-        summary_lbl.pack()
 
         filter_bar = tk.Frame(log_win, bg="white", padx=20, pady=15)
         filter_bar.pack(fill="x", padx=30, pady=(0, 20))
@@ -105,23 +128,41 @@ def start_admin_panel(window, back_to_pos_callback):
         ttk.Combobox(filter_bar, textvariable=unit_var,
                      values=["Hours", "Days", "Months", "All Time"],
                      state="readonly", width=12).pack(side="left", padx=5)
+        # Simple fuzzy search for receipt filenames
+        tk.Label(filter_bar, text="Search:", bg="white").pack(side="left", padx=(12, 4))
+        search_var = tk.StringVar(value="")
+        search_entry = tk.Entry(filter_bar, textvariable=search_var, width=25)
+        search_entry.pack(side="left", padx=5)
+
+        def fuzzy_match(name, query):
+            if not query:
+                return True
+            s = re.sub(r'\W', '', name).lower()
+            q = re.sub(r'\W', '', query).lower()
+            i = 0
+            for ch in q:
+                i = s.find(ch, i)
+                if i == -1:
+                    return False
+                i += 1
+            return True
 
         def render_logs():
             for widget in scroll_frame.winfo_children():
                 widget.destroy()
-            total = 0.0
-            now   = datetime.now()
+            
+            total_rev = 0.0
+            total_profit = 0.0
+            search_q = search_var.get().strip()
+            now = datetime.now()
+            
             try:
-                val  = int(count_var.get())
+                val = int(count_var.get())
                 unit = unit_var.get()
-                if unit == "Hours":
-                    limit = now - timedelta(hours=val)
-                elif unit == "Days":
-                    limit = now - timedelta(days=val)
-                elif unit == "Months":
-                    limit = now - timedelta(days=val * 30)
-                else:
-                    limit = datetime.min
+                if unit == "Hours": limit = now - timedelta(hours=val)
+                elif unit == "Days": limit = now - timedelta(days=val)
+                elif unit == "Months": limit = now - timedelta(days=val * 30)
+                else: limit = datetime.min
             except:
                 limit = datetime.min
 
@@ -129,15 +170,41 @@ def start_admin_panel(window, back_to_pos_callback):
                 files = sorted([f for f in os.listdir(receipt_dir) if f.endswith(".txt")], reverse=True)
                 for file_name in files:
                     try:
-                        ts = re.sub(r'\D', '', file_name)
-                        if len(ts) < 14:
-                            continue
-                        if datetime.strptime(ts[:14], "%Y%m%d%H%M%S") >= limit:
+                        # Extract timestamp from filename (e.g., 20231025123000.txt)
+                        ts_str = re.sub(r'\D', '', file_name)
+                        if len(ts_str) < 14: continue
+                        
+                        file_dt = datetime.strptime(ts_str[:14], "%Y%m%d%H%M%S")
+                        
+                        if file_dt >= limit:
+                            # Filter by fuzzy search on the filename
+                            if search_q and not fuzzy_match(file_name, search_q):
+                                continue
                             with open(os.path.join(receipt_dir, file_name), "r", encoding="utf-8") as f:
                                 content = f.read()
-                                match   = re.search(r'TOTAL:\s*₱?([\d,.]+)', content)
-                                if match:
-                                    total += float(match.group(1).replace(',', ''))
+                                # Parse Revenue
+                                rev_match = re.search(r'TOTAL:\s*₱?([\d,.]+)', content)
+                                if rev_match:
+                                    total_rev += float(rev_match.group(1).replace(',', ''))
+
+                                # Parse PROFIT tag if present (receipts generated after the feature was added)
+                                profit_match = re.search(r'PROFIT:\s*₱?([\d,.]+)', content)
+                                if profit_match:
+                                    total_profit += float(profit_match.group(1).replace(',', ''))
+                                else:
+                                    # Fallback: estimate profit from line items using current inventory costs
+                                    for line in content.splitlines():
+                                        m = re.match(r'^(.+?)\s+(\d+)x\s+₱([\d,.]+)', line)
+                                        if m:
+                                            item_name = m.group(1).strip()
+                                            qty = int(m.group(2))
+                                            # Look up cost from current inventory (best-effort)
+                                            key = next((k for k in inventory if k.upper() == item_name.upper()), None)
+                                            if key:
+                                                price = inventory[key]["price"]
+                                                cost  = inventory[key].get("cost", 0) or 0
+                                                total_profit += (price - cost) * qty
+
                             btn = tk.Button(scroll_frame, text=f"  🧾  {file_name}",
                                             font=("Segoe UI Semibold", 10), anchor="w",
                                             bg="white", relief="flat", pady=12, padx=15,
@@ -145,7 +212,6 @@ def start_admin_panel(window, back_to_pos_callback):
                             btn.pack(fill="x", pady=2)
                     except:
                         continue
-            summary_lbl.config(text=f"Total Revenue (Last {count_var.get()} {unit_var.get()}): {peso(total)}")
 
         tk.Button(filter_bar, text="APPLY", command=render_logs,
                   bg=palette.primary, fg="white", font=("Segoe UI", 9, "bold"),
@@ -153,7 +219,7 @@ def start_admin_panel(window, back_to_pos_callback):
 
         list_container = tk.Frame(log_win, bg="white")
         list_container.pack(fill="both", expand=True, padx=30, pady=(0, 30))
-        canvas    = tk.Canvas(list_container, bg="white", highlightthickness=0)
+        canvas = tk.Canvas(list_container, bg="white", highlightthickness=0)
         scrollbar = ttk.Scrollbar(list_container, orient="vertical", command=canvas.yview)
         scroll_frame = tk.Frame(canvas, bg="white")
         scroll_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
@@ -241,24 +307,30 @@ def start_admin_panel(window, back_to_pos_callback):
         canvas_widget.get_tk_widget().pack(fill="both", expand=True)
 
         def load_orders_from_db():
-            """Query orders table directly — all terminals, real data."""
+            """Query orders + order_lines joined to order_items for cost — all terminals, real data."""
             from db.connection import execute
             rows = execute(
-                "SELECT created_at, total FROM `orders`",
+                """SELECT o.created_at, o.total,
+                          COALESCE(SUM((ol.price - COALESCE(oi.cost, 0)) * ol.qty), 0) AS profit
+                   FROM `orders` o
+                   LEFT JOIN `order_lines` ol ON o.invoice_no = ol.invoice_no
+                   LEFT JOIN `order_items` oi ON ol.product_id = oi.id
+                   GROUP BY o.id, o.created_at, o.total""",
                 fetch="all"
             )
             if not rows:
                 return []
             result = []
             for row in rows:
-                dt  = row["created_at"]
-                amt = float(row["total"])
+                dt     = row["created_at"]
+                amt    = float(row["total"])
+                profit = float(row["profit"])
                 if isinstance(dt, str):
                     try:
                         dt = datetime.strptime(dt, "%Y-%m-%d %H:%M:%S")
                     except:
                         continue
-                result.append((dt, amt))
+                result.append((dt, amt, profit))
             return result
 
         def bucket_key(dt, period):
@@ -279,37 +351,51 @@ def start_admin_panel(window, back_to_pos_callback):
 
         def render_chart():
             from collections import defaultdict
-            period  = period_var.get()
-            raw     = load_orders_from_db()
-            buckets = defaultdict(float)
-            for dt, amt in raw:
-                buckets[bucket_key(dt, period)] += amt
+            import numpy as np
+            period   = period_var.get()
+            raw      = load_orders_from_db()
+            rev_buckets    = defaultdict(float)
+            profit_buckets = defaultdict(float)
+            for dt, amt, profit in raw:
+                key = bucket_key(dt, period)
+                rev_buckets[key]    += amt
+                profit_buckets[key] += profit
 
             ax.clear()
-            if not buckets:
+            if not rev_buckets:
                 ax.text(0.5, 0.5, "No sales data yet", ha="center", va="center",
                         transform=ax.transAxes, fontsize=13, color="#7f8c8d")
                 canvas_widget.draw()
                 return
 
-            labels = sorted(buckets.keys())
-            values = [buckets[l] for l in labels]
-            x      = range(len(labels))
+            labels = sorted(rev_buckets.keys())
+            rev_vals    = [rev_buckets[l]    for l in labels]
+            profit_vals = [profit_buckets[l] for l in labels]
+            x     = np.arange(len(labels))
+            width = 0.4
 
-            bars = ax.bar(x, values, color=palette.primary, edgecolor="white", linewidth=0.8)
+            bars_rev    = ax.bar(x - width/2, rev_vals,    width, label="Revenue", color=palette.primary,  edgecolor="white", linewidth=0.6)
+            bars_profit = ax.bar(x + width/2, profit_vals, width, label="Profit",  color=palette.secondary, edgecolor="white", linewidth=0.6)
+
             ax.set_xticks(list(x))
             ax.set_xticklabels(labels, rotation=30, ha="right", fontsize=8)
-            ax.set_ylabel("Revenue (₱)", fontsize=9)
-            ax.set_title(f"{period} Sales Revenue", fontsize=12, fontweight="bold", color=palette.text)
+            ax.set_ylabel("Amount (₱)", fontsize=9)
+            ax.set_title(f"{period} Revenue vs Profit", fontsize=12, fontweight="bold", color=palette.text)
             ax.set_facecolor("#ffffff")
             ax.spines["top"].set_visible(False)
             ax.spines["right"].set_visible(False)
             ax.yaxis.set_major_formatter(
                 matplotlib.ticker.FuncFormatter(lambda v, _: f"₱{v:,.0f}")
             )
-            for bar, val in zip(bars, values):
-                ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + max(values) * 0.01,
-                        f"₱{val:,.0f}", ha="center", va="bottom", fontsize=7, color=palette.text)
+            ax.legend(loc="upper left", fontsize=8)
+
+            max_val = max(max(rev_vals), 1)
+            for bar, val in zip(bars_rev, rev_vals):
+                ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + max_val * 0.01,
+                        f"₱{val:,.0f}", ha="center", va="bottom", fontsize=6, color=palette.text)
+            for bar, val in zip(bars_profit, profit_vals):
+                ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + max_val * 0.01,
+                        f"₱{val:,.0f}", ha="center", va="bottom", fontsize=6, color=palette.secondary)
 
             fig.tight_layout()
             canvas_widget.draw()
@@ -353,27 +439,66 @@ def start_admin_panel(window, back_to_pos_callback):
     stock_entry = tk.Entry(edit_frame, justify="center", font=("Segoe UI", 12),
                            bg=palette.bg, relief="flat")
     stock_entry.pack(fill="x", pady=(5, 15), ipady=8)
+    
+    tk.Label(edit_frame, text="New Cost (₱):", bg="white").pack(anchor="w")
+    cost_entry = tk.Entry(edit_frame, justify="center", font=("Segoe UI", 12),
+                           bg=palette.bg, relief="flat")
+    cost_entry.pack(fill="x", pady=(5, 15), ipady=8)
 
     def save_edits():
         selected = tree.selection()
         if not selected:
             return messagebox.showwarning("Selection", "Select items first.")
         try:
+            # 1. Get inputs from the entry boxes
             p = float(price_entry.get()) if price_entry.get() else None
             s = int(stock_entry.get())   if stock_entry.get() else None
-            from db.products_db import save_price, set_stock
+            c = float(cost_entry.get())  if cost_entry.get() else None
+
+            # Import the specific database functions
+            from db.products_db import save_price, set_stock, save_cost 
+            
             for item_id in selected:
                 name = tree.item(item_id)['values'][0]
+                # Find the correct key in your inventory dictionary
                 key  = next((k for k in inventory if k.upper() == name), name)
+                
+                # 2. Determine final values to check against guardrails
+                final_p = p if p is not None else inventory[key]['price']
+                final_c = c if c is not None else inventory[key].get('cost', 0)
+                profit = final_p - final_c
+
+                # Guardrail: Prevent selling at a loss
+                if final_p <= final_c:
+                    messagebox.showerror("Invalid Pricing", 
+                        f"Error for {name}: Selling price (₱{final_p}) cannot be lower than cost (₱{final_c}).")
+                    return
+                
+                # Guardrail: Warning for low profit margin
+                if profit < 5:
+                    confirm = messagebox.askyesno("Low Margin Warning", 
+                        f"Profit for '{name}' will only be ₱{profit:.2f}. Proceed anyway?")
+                    if not confirm:
+                        continue
+
+                # 3. Apply changes to Database
                 if p is not None: save_price(key, p)
                 if s is not None: set_stock(key, s)
+                if c is not None: save_cost(key, c)
+
+            # 4. Sync and Refresh UI
             save_to_disk()
             refresh_table()
+            
+            # Clear all entry fields
             price_entry.delete(0, tk.END)
             stock_entry.delete(0, tk.END)
-            messagebox.showinfo("Success", "Inventory Updated.")
-        except:
-            messagebox.showerror("Error", "Invalid input.")
+            cost_entry.delete(0, tk.END)
+            
+            messagebox.showinfo("Success", "Inventory Updated successfully.")
+            
+        except ValueError:
+            messagebox.showerror("Input Error", "Please ensure Price, Cost, and Stock are valid numbers.")
 
     tk.Button(edit_frame, text="SAVE CHANGES", bg=palette.secondary, fg="white", font=BTN_FONT,
               relief="flat", pady=BTN_PAD_Y, cursor="hand2", command=save_edits).pack(fill="x")
@@ -423,11 +548,11 @@ def start_admin_panel(window, back_to_pos_callback):
     btn_toggle_row = tk.Frame(img_frame, bg="white")
     btn_toggle_row.pack(fill="x", pady=(0, 10))
 
-    tk.Button(btn_toggle_row, text="☁ USE CLOUDINARY", bg=palette.primary, fg="white",
+    tk.Button(btn_toggle_row, text="☁  USE CLOUDINARY", bg=palette.primary, fg="white",
               relief="flat", font=("Segoe UI", 8, "bold"), padx=6, pady=5, cursor="hand2",
               command=lambda: _switch_mode("cloudinary")).pack(side="left", expand=True, fill="x", padx=(0, 4))
 
-    tk.Button(btn_toggle_row, text="💾 USE LOCAL", bg="#9b59b6", fg="white",
+    tk.Button(btn_toggle_row, text="💾  USE LOCAL", bg="#9b59b6", fg="white",
               relief="flat", font=("Segoe UI", 8, "bold"), padx=6, pady=5, cursor="hand2",
               command=lambda: _switch_mode("local")).pack(side="left", expand=True, fill="x")
 
@@ -463,7 +588,7 @@ def start_admin_panel(window, back_to_pos_callback):
 
         threading.Thread(target=_do_upload, daemon=True).start()
 
-    tk.Button(img_frame, text="📁 UPLOAD IMAGE", anchor="center", bg=palette.text, fg="white", relief="flat",
+    tk.Button(img_frame, text="📁  UPLOAD IMAGE", bg=palette.text, fg="white", relief="flat",
               font=BTN_FONT, pady=8, cursor="hand2", command=_upload_image).pack(fill="x")
 
     def _remove_image():
@@ -482,7 +607,7 @@ def start_admin_panel(window, back_to_pos_callback):
         except Exception as exc:
             messagebox.showerror("Error", str(exc))
 
-    tk.Button(img_frame, text="🗑 REMOVE IMAGE", anchor="center", bg=palette.danger, fg="white", relief="flat",
+    tk.Button(img_frame, text="🗑  REMOVE IMAGE", bg=palette.danger, fg="white", relief="flat",
               font=("Segoe UI", 9, "bold"), pady=6, cursor="hand2",
               command=_remove_image).pack(fill="x", pady=(6, 0))
 
@@ -530,30 +655,60 @@ def start_admin_panel(window, back_to_pos_callback):
     new_stock_entry.insert(0, "50")
     new_stock_entry.pack(fill="x", pady=(4, 12), ipady=7)
 
-    def add_product():
-        name  = new_name_entry.get().strip()
-        price = new_price_entry.get().strip()
-        stock = new_stock_entry.get().strip()
-        if not name or not price:
-            return messagebox.showwarning("Missing Fields", "Name and price are required.")
-        try:
-            price = float(price)
-            stock = int(stock) if stock else 50
-        except ValueError:
-            return messagebox.showerror("Invalid Input", "Price must be a number, stock must be an integer.")
-        from db.products_db import add_product as db_add
-        ok, msg = db_add(name, price, stock)
-        if ok:
-            save_to_disk()
-            refresh_table()
-            new_name_entry.delete(0, tk.END)
-            new_price_entry.delete(0, tk.END)
-            new_stock_entry.delete(0, tk.END)
-            new_stock_entry.insert(0, "50")
-            messagebox.showinfo("Added", f"\"{name}\" added to menu.")
-        else:
-            messagebox.showerror("Error", msg)
+    tk.Label(product_frame, text="Unit Cost (₱):", bg="white").pack(anchor="w")
+    new_cost_entry = tk.Entry(product_frame, justify="center", font=("Segoe UI", 11), bg=palette.bg, relief="flat")
+    new_cost_entry.pack(fill="x", pady=(4, 12), ipady=7)
 
+    def add_product():
+        name = new_name_entry.get().strip()
+        price_str = new_price_entry.get().strip()
+        stock_str = new_stock_entry.get().strip()
+        cost_str = new_cost_entry.get().strip()
+
+        if not (name and price_str and stock_str and cost_str):
+            messagebox.showwarning("Input Error", "All fields are required.")
+            return
+
+        try:
+            price = float(price_str)
+            cost = float(cost_str)
+            stock = int(stock_str)
+            profit = price - cost
+
+            # 1. STOP: Block if selling at a loss
+            if price <= cost:
+                messagebox.showerror("Pricing Error", 
+                    f"Invalid Price: You cannot sell '{name}' for less than it costs (₱{cost}).\n"
+                    f"Current Profit: ₱{profit}")
+                return
+
+            # 2. WARN: Alert if profit is less than 5
+            if profit < 5:
+                confirm = messagebox.askyesno("Low Profit Warning", 
+                    f"The profit for '{name}' is only ₱{profit:.2f}.\n"
+                    "This is below the ₱5.00 threshold. Do you wish to continue?")
+                if not confirm:
+                    return
+
+            # 3. PROCEED: Database and Disk Sync
+            from db.products_db import add_product as db_add
+            ok, msg = db_add(name, price, stock, cost)
+            
+            if ok:
+                save_to_disk() # Local Repo Sync
+                refresh_table()
+                new_name_entry.delete(0, tk.END)
+                new_price_entry.delete(0, tk.END)
+                new_stock_entry.delete(0, tk.END)
+                new_stock_entry.insert(0, "50")
+                new_cost_entry.delete(0, tk.END)
+                messagebox.showinfo("Success", "Product added and synced successfully.")
+            else:
+                messagebox.showerror("Error", msg)
+
+        except ValueError:
+            messagebox.showerror("Format Error", "Please ensure Price, Cost, and Stock are valid numbers.")
+            
     def delete_selected():
         selected = tree.selection()
         if not selected:
@@ -570,7 +725,7 @@ def start_admin_panel(window, back_to_pos_callback):
         refresh_table()
         messagebox.showinfo("Deleted", f"{len(names)} item(s) removed.")
 
-    tk.Button(product_frame, text="➕ ADD PRODUCT", bg=palette.secondary, fg="white",
+    tk.Button(product_frame, text="➕  ADD PRODUCT", bg=palette.secondary, fg="white",
               font=BTN_FONT, relief="flat", pady=BTN_PAD_Y, cursor="hand2",
               command=add_product).pack(fill="x", pady=(0, 8))
 
@@ -584,11 +739,11 @@ def start_admin_panel(window, back_to_pos_callback):
                                   padx=20, pady=20, font=BTN_FONT, relief="flat")
     reports_frame.pack(fill="x", pady=(0, 20))
 
-    tk.Button(reports_frame, text="📋 VIEW SALES HISTORY", bg=palette.primary, fg="white",
+    tk.Button(reports_frame, text="📋  VIEW SALES HISTORY", bg=palette.primary, fg="white",
               font=BTN_FONT, relief="flat", pady=BTN_PAD_Y, cursor="hand2",
               command=open_history_log).pack(fill="x", pady=(0, 8))
 
-    tk.Button(reports_frame, text="📊 SALES ANALYTICS", bg=palette.secondary, fg="white",
+    tk.Button(reports_frame, text="📊  SALES ANALYTICS", bg=palette.secondary, fg="white",
               font=BTN_FONT, relief="flat", pady=BTN_PAD_Y, cursor="hand2",
               command=open_sales_chart).pack(fill="x")
 

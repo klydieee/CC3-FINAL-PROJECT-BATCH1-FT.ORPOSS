@@ -88,12 +88,22 @@ def open_order_status_window(parent_window, allow_status_update=False):
 
     def make_card(parent, order, accent):
         if not allow_status_update:
+            # Define a high-contrast text color based on the status
+            # If the background is dark (like your serving color), use white text.
+            text_color = "white" if order["status"] == "serving" else palette.text
+            
             card = tk.Frame(parent, bg=accent, bd=0, relief="flat")
             card.pack(fill="x", padx=10, pady=10)
+            
             tk.Label(card, text=f"ORDER #{order['invoice_no'][-4:]}",
-                     font=("Segoe UI", 34, "bold"), fg=palette.text, bg=accent, pady=22).pack(fill="x")
+                    font=("Segoe UI", 34, "bold"), 
+                    fg=text_color, # Updated for legibility
+                    bg=accent, pady=22).pack(fill="x")
+                    
             tk.Label(card, text=STATUS_LABELS[order["status"]],
-                     font=("Segoe UI", 12, "bold"), fg=palette.text, bg=accent, pady=6).pack(fill="x")
+                    font=("Segoe UI", 12, "bold"), 
+                    fg=text_color, # Updated for legibility
+                    bg=accent, pady=6).pack(fill="x")
             return
 
         card = tk.Frame(parent, bg=palette.text, bd=1, relief="solid")

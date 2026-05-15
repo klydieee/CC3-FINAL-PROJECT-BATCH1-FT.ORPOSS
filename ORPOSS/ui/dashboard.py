@@ -10,7 +10,7 @@ from utils.helper import peso
 from utils.receipt_generator import generate_receipt_file
 from ui.receipt_popup import show_receipt_popup
 from ui.order_review import show_order_review
-from ui.admin_panel import start_admin_panel
+from ui.launcher import start_launcher
 from ui.login import start_login
 from ui.order_status_window import open_order_status_window
 from utils.palette import palette
@@ -29,6 +29,7 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
     def on_closing():
         if messagebox.askokcancel("Quit", "Exit the system?"):
             window.destroy()
+            sys.exit()
 
     window.protocol("WM_DELETE_WINDOW", on_closing)
 
@@ -41,11 +42,7 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
     def format_cash(*_):
         val = cash_var.get()
         digits = "".join(filter(str.isdigit, val))
-        digits = digits.lstrip("0")
-        correct = f"₱{digits}" if digits else "₱"
-        if val != correct:
-            cash_var.set(correct)
-            cash_entry.after(0, lambda: cash_entry.icursor(tk.END))
+        cash_var.set(f"₱{digits}" if digits else "₱")
 
     cash_var.trace_add("write", format_cash)
 
@@ -68,8 +65,8 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
 
     def adjust_qty(name, amt):
         if amt > 0 and inventory[name]["stock"] > 0:
-            cart[name] = cart.get(name, 0) + amt
-            inventory[name]["stock"] -= amt
+            cart[name] = cart.get(name, 0) + 1
+            inventory[name]["stock"] -= 1
         elif amt < 0 and name in cart:
             cart[name] -= 1
             inventory[name]["stock"] += 1
@@ -139,17 +136,35 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
             messagebox.showerror("Insufficient", f"Cash is less than total {peso(total)}")
             return
 
-        summary = {n: {"qty": q, "price": inventory[n]["price"]} for n, q in cart.items()}
+        # REPLACE THE OLD SUMMARY LINE WITH THIS:
+        summary = {}
+        total_profit = 0.0
+        for n, q in cart.items():
+            price = inventory[n]["price"]
+            cost  = inventory[n].get("cost", 0) or 0
+            item_profit = (price - cost) * q
+            total_profit += item_profit
+
+            summary[n] = {
+                "qty":        q,
+                "price":      price,
+                "cost":       cost,
+                "profit":     item_profit,
+                "product_id": inventory[n].get("id"),  # FK to order_items
+            }
 
         def finalize(mode):
             inv_no = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
             change = cash - total
+            # Now passing total_profit if your generator supports it, 
+            # or it's inside the summary for the generator to find.
             generate_receipt_file(cash, change, inv_no, total, summary, mode)
             add_order(inv_no, order_type, mode, total, summary, cash=cash, change_amt=change)
             cart.clear()
             cash_var.set("₱")
             save_inventory()
-            show_receipt_popup(window, cash, change, inv_no, total, summary, mode, on_done=lambda: start_login(window))
+            start_login(window)
+            show_receipt_popup(window, cash, change, inv_no, total, summary, mode)
 
         show_order_review(window, cash, total, summary, finalize)
 
@@ -162,16 +177,10 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
     tk.Label(sidebar, text="Customer Menu", fg=palette.win95, bg=palette.text, font=("Segoe UI", 14, "italic")).pack(pady=(0, 4))
 
     if user_role == "Admin":
-        for btn_text, kitchen_mode in [("📺  CUSTOMER SCREEN", False), ("🍳  KITCHEN PANEL", True)]:
-            tk.Button(sidebar, text=btn_text, bg="#34495e", fg=palette.win95, font=("Segoe UI", 8, "bold"),
-                      relief="flat",
-                      command=lambda m=kitchen_mode: open_order_status_window(window, allow_status_update=m)
-                      ).pack(fill="x", padx=15, pady=(0, 8))
-
-        tk.Button(sidebar, text="ADMIN PANEL", bg="#34495e", fg=palette.win95, font=("Segoe UI", 8, "bold"),
+        tk.Button(sidebar, text="📺  CUSTOMER SCREEN", bg="#34495e", fg=palette.win95, font=("Segoe UI", 8, "bold"),
                   relief="flat",
-                  command=lambda: start_admin_panel(window, lambda: start_dashboard(window, user_role, order_type))
-                  ).pack(side="bottom", fill="x", pady=20, padx=15)
+                  command=lambda: open_order_status_window(window, allow_status_update=False)
+                  ).pack(fill="x", padx=15, pady=(0, 8))
 
     # 2. Menu Grid
     menu_scroll = ctk.CTkScrollableFrame(window, fg_color=palette.bg, corner_radius=0)
@@ -294,10 +303,10 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
     total_lbl = tk.Label(tot_row, text="₱0.00", font=("Segoe UI", 26, "bold"), fg=palette.primary, bg=palette.bg)
     total_lbl.pack(side="right")
 
-    cash_entry = tk.Entry(footer, textvariable=cash_var, justify="center", font=("Segoe UI", 22), bd=0, bg="#f1f2f6",
-                          fg=palette.text)
-    cash_entry.pack(fill="x", pady=(0, 16), ipady=10)
-
+    tk.Entry(footer, textvariable=cash_var, justify="center", font=("Segoe UI", 22), bd=0, bg="#f1f2f6", fg=palette.text).pack(fill="x",
+                                                                                                              pady=(0,
+                                                                                                                    16),
+                                                                                                              ipady=10)
     tk.Button(footer, text="PLACE ORDER", bg=palette.secondary, fg=palette.win95, font=("Segoe UI", 15, "bold"), height=2,
               relief="flat", command=handle_checkout).pack(fill="x")
 

@@ -14,8 +14,9 @@ inventory = {}
 def load_inventory():
     global inventory
     if is_online():
+        # UPDATED: Added 'cost' to the SELECT statement
         rows = execute(
-            "SELECT id, name, price, stock, image_url FROM order_items",
+            "SELECT id, name, price, stock, image_url, cost FROM order_items",
             fetch="all"
         )
         if rows:
@@ -26,13 +27,20 @@ def load_inventory():
                     "price":     float(row["price"]),
                     "stock":     row["stock"],
                     "image_url": row["image_url"] or "",
+                    "cost":      float(row.get("cost", 0)), # UPDATED: Store cost
                 }
             print(f"[DB] Loaded {len(inventory)} products from order_items.")
             return
     print("[DB] Offline -- using local inventory.py")
     inventory.clear()
     inventory.update({
-        k: {"id": None, "price": v["price"], "stock": v["stock"], "image_url": ""}
+        k: {
+            "id": None, 
+            "price": v["price"], 
+            "stock": v["stock"], 
+            "cost": v.get("cost", 0),
+            "image_url": ""
+        }
         for k, v in _local_inventory.items()
     })
 
@@ -45,11 +53,11 @@ def _push_inventory():
                 "price":     item["price"],
                 "stock":     item["stock"],
                 "image_url": item["image_url"],
+                "cost":      item.get("cost", 0),
             }
             for name, item in inventory.items()
         }
     })
-
 
 def save_stock(name):
     item = inventory.get(name)
@@ -86,7 +94,16 @@ def restock_all(amount=100):
             execute("UPDATE order_items SET stock=%s WHERE id=%s",
                     (item["stock"], item["id"]))
     _push_inventory()
-
+    
+def save_cost(name, cost):
+    """Update the cost for an item in the DB and local state."""
+    if name in inventory:
+        inventory[name]["cost"] = cost
+    item = inventory.get(name)
+    if item and item.get("id") and is_online():
+        execute("UPDATE order_items SET cost=%s WHERE id=%s",
+                (cost, item["id"]))
+        _push_inventory()
 
 def update_image_url(name, image_url):
     item = inventory.get(name)
@@ -98,17 +115,23 @@ def update_image_url(name, image_url):
             _push_inventory()
 
 
-def add_product(name, price, stock=50):
-    """Add a new product to DB and local inventory. Returns True on success."""
+def add_product(name, price, stock=50, cost=0):
+    """Add a new product with price, stock, and cost. Returns True on success."""
     if name in inventory:
         return False, "Product already exists."
     new_id = None
     if is_online():
         new_id = execute(
-            "INSERT INTO order_items (name, price, stock) VALUES (%s, %s, %s)",
-            (name, price, stock)
+            "INSERT INTO order_items (name, price, stock, cost) VALUES (%s, %s, %s, %s)",
+            (name, price, stock, cost)
         )
-    inventory[name] = {"id": new_id, "price": float(price), "stock": stock, "image_url": ""}
+    inventory[name] = {
+        "id": new_id, 
+        "price": float(price), 
+        "stock": stock, 
+        "cost": float(cost), 
+        "image_url": ""
+    }
     _push_inventory()
     return True, "Product added."
 

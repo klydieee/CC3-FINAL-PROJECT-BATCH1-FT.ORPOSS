@@ -4,7 +4,7 @@ from tkinter import messagebox
 from PIL import Image, ImageTk
 
 from ui.order_type import start_order_type
-from ui.kitchen_panel import start_kitchen_panel
+from ui.launcher import start_launcher
 from utils.palette import palette
 
 
@@ -115,10 +115,10 @@ def start_login(window):
 
         def verify():
             pin = pass_var.get()
-            if role == "Admin" and pin == "admin123" or "a123" or "123":
+            if role == "Admin" and pin in ["admin123", "a123", "123"]:
                 win.destroy()
                 start_order_type(window, user_role="Admin")
-            elif role == "Kitchen" and pin == "kitchen123" or "k123" or "123":
+            elif role == "Kitchen" and pin in ["kitchen123", "k123", "123"]:
                 win.destroy()
                 start_kitchen_panel(window)
             else:
@@ -168,11 +168,11 @@ def start_login(window):
         win.geometry(f"+{x}+{y}")
 
         icon_frame = tk.Frame(win, bg=palette.bg)
-        icon_frame.pack(fill="x", pady=(30, 10,))
+        icon_frame.pack(fill="x", pady=(30, 10))
 
         tk.Label(
             icon_frame,
-            text="     🖥️",
+            text="🖥️",
             font=("Arial", 30),
             bg=palette.bg
         ).pack(anchor="center")
@@ -220,7 +220,7 @@ def start_login(window):
         err.pack()
 
         def verify():
-            if pass_var.get() in ["admin123", "a123", "123"]:
+            if pass_var.get() in ["admin123", "a123"]:
                 win.destroy()
                 from ui.admin_panel import start_admin_panel
                 start_admin_panel(window, back_to_pos_callback=lambda: start_login(window))
@@ -257,32 +257,3 @@ def start_login(window):
 
         win.bind("<Return>", lambda e: verify())
 
-    tk.Button(
-        window,
-        text="KITCHEN PANEL",
-        font=("Helvetica", 8, "bold"),
-        bg=palette.win95,
-        fg=palette.text,
-        activebackground=palette.win95,
-        activeforeground=palette.text,
-        relief="flat",
-        padx=10,
-        pady=5,
-        cursor="hand2",
-        command=lambda: open_access_popup("Kitchen Access", "👨‍🍳", "Kitchen")
-    ).place(relx=1.0, rely=1.0, anchor="se", x=-130, y=-20)
-
-    tk.Button(
-        window,
-        text="ADMIN PANEL",
-        font=("Helvetica", 8, "bold"),
-        bg=palette.win95,
-        fg=palette.text,
-        activebackground=palette.win95,
-        activeforeground=palette.text,
-        relief="flat",
-        padx=10,
-        pady=5,
-        cursor="hand2",
-        command=open_admin_panel_direct
-    ).place(relx=1.0, rely=1.0, anchor="se", x=-20, y=-20)

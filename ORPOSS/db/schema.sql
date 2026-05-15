@@ -15,18 +15,19 @@ CREATE TABLE IF NOT EXISTS `order_items` (
   `price`      DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   `stock`      INT(11)       NOT NULL DEFAULT 0,
   `image_url`  VARCHAR(500)  DEFAULT NULL,
+  `cost`       DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `order_items` (`name`, `price`, `stock`) VALUES
-('Burger',      55.00, 50),
-('Fries',       35.00, 50),
-('Chicken',     99.00, 50),
-('Soda',        25.00, 50),
-('Hotdog',      40.00, 50),
-('Ice Cream',   35.00, 50),
-('Extra Gravy', 15.00, 50),
-('Extra Rice',  20.00, 50)
+INSERT INTO `order_items` (`name`, `price`, `stock`, `cost`) VALUES
+('Burger',      55.00, 50, 30.00),
+('Fries',       35.00, 50, 20.00),
+('Chicken',     99.00, 50, 60.00),
+('Soda',        25.00, 50, 15.00),
+('Hotdog',      40.00, 50, 25.00),
+('Ice Cream',   35.00, 50, 20.00),
+('Extra Gravy', 15.00, 50, 10.00),
+('Extra Rice',  20.00, 50, 12.00)
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
 
 -- ── Orders ────────────────────────────────────────────────────────────────────
@@ -48,12 +49,15 @@ CREATE TABLE IF NOT EXISTS `orders` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ── Order Lines (Per-order breakdown) ────────────────────────────────────────
+-- NOTE: profit is derived at query time by joining order_items for the cost column.
+-- No cost column is stored here — use: ol JOIN order_items oi ON ol.product_id = oi.id
 CREATE TABLE IF NOT EXISTS `order_lines` (
   `id`         INT(11)       NOT NULL AUTO_INCREMENT,
   `invoice_no` VARCHAR(20)   NOT NULL,
   `name`       VARCHAR(100)  NOT NULL,
   `qty`        INT(11)       NOT NULL,
   `price`      DECIMAL(10,2) NOT NULL,
+  `product_id` INT(11)       DEFAULT NULL,
   PRIMARY KEY (`id`),
   INDEX `idx_invoice` (`invoice_no`),
   FOREIGN KEY (`invoice_no`) REFERENCES `orders`(`invoice_no`) ON DELETE CASCADE

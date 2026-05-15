@@ -37,9 +37,10 @@ def add_order(invoice_no, order_type, payment_mode, total, summary, cash=0, chan
             (invoice_no, order_type, payment_mode, total, cash, change_amt, now)
         )
         for name, data in summary.items():
+            product_id = data.get("product_id") or None
             execute(
-                "INSERT INTO order_lines (invoice_no, name, qty, price) VALUES (%s,%s,%s,%s)",
-                (invoice_no, name, data["qty"], data["price"])
+                "INSERT INTO order_lines (invoice_no, name, qty, price, product_id) VALUES (%s,%s,%s,%s,%s)",
+                (invoice_no, name, data["qty"], data["price"], product_id)
             )
 
     push_event("orders", "new-order", {
@@ -89,9 +90,11 @@ def get_orders(status=None):
 
 def _seed_from_db():
     rows = execute(
-        """SELECT o.*, ol.name as item_name, ol.qty, ol.price as item_price
+        """SELECT o.*, ol.name as item_name, ol.qty, ol.price as item_price,
+                  COALESCE(oi.cost, 0) as item_cost
            FROM orders o
            JOIN order_lines ol ON o.invoice_no = ol.invoice_no
+           LEFT JOIN order_items oi ON ol.product_id = oi.id
            WHERE o.status IN ('preparing','serving')
            ORDER BY o.created_at ASC""",
         fetch="all"
@@ -114,8 +117,10 @@ def _seed_from_db():
                 "claimed_at":   row["claimed_at"].strftime("%I:%M %p") if row.get("claimed_at") else "",
             }
         grouped[inv]["summary"][row["item_name"]] = {
-            "qty":   row["qty"],
-            "price": float(row["item_price"]),
+            "qty":    row["qty"],
+            "price":  float(row["item_price"]),
+            "cost":   float(row["item_cost"]),
+            "profit": (float(row["item_price"]) - float(row["item_cost"])) * row["qty"],
         }
     orders.extend(grouped.values())
     print(f"[DB] Seeded {len(grouped)} active orders from MySQL.")
