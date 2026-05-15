@@ -270,7 +270,7 @@ def start_login(window):
         pady=5,
         cursor="hand2",
         command=lambda: open_access_popup("Kitchen Access", "👨‍🍳", "Kitchen")
-    ).place(relx=1.0, rely=1.0, anchor="se", x=-150, y=-20)
+    ).place(relx=1.0, rely=1.0, anchor="se", x=-130, y=-20)
 
     tk.Button(
         window,
