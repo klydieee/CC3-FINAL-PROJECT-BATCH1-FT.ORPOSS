@@ -42,7 +42,11 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
     def format_cash(*_):
         val = cash_var.get()
         digits = "".join(filter(str.isdigit, val))
-        cash_var.set(f"₱{digits}" if digits else "₱")
+        digits = digits.lstrip("0")
+        correct = f"₱{digits}" if digits else "₱"
+        if val != correct:
+            cash_var.set(correct)
+            cash_entry.after(0, lambda: cash_entry.icursor(tk.END))
 
     cash_var.trace_add("write", format_cash)
 
@@ -60,12 +64,13 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
         if messagebox.askyesno("Clear Tray", "Remove all items from your tray?"):
             for n, q in cart.items():
                 inventory[n]["stock"] += q
+            save_inventory()
             cart.clear()
             update_ui()
 
     def adjust_qty(name, amt):
         if amt > 0 and inventory[name]["stock"] > 0:
-            cart[name] = cart.get(name, 0) + 1
+            cart[name] = cart.get(name, 0) + amt
             inventory[name]["stock"] -= 1
         elif amt < 0 and name in cart:
             cart[name] -= 1
@@ -160,11 +165,10 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
             # or it's inside the summary for the generator to find.
             generate_receipt_file(cash, change, inv_no, total, summary, mode)
             add_order(inv_no, order_type, mode, total, summary, cash=cash, change_amt=change)
+            save_inventory()
             cart.clear()
             cash_var.set("₱")
-            save_inventory()
-            start_login(window)
-            show_receipt_popup(window, cash, change, inv_no, total, summary, mode)
+            show_receipt_popup(window, cash, change, inv_no, total, summary, mode,on_done=lambda: start_login(window))
 
         show_order_review(window, cash, total, summary, finalize)
 
@@ -303,10 +307,9 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
     total_lbl = tk.Label(tot_row, text="₱0.00", font=("Segoe UI", 26, "bold"), fg=palette.primary, bg=palette.bg)
     total_lbl.pack(side="right")
 
-    tk.Entry(footer, textvariable=cash_var, justify="center", font=("Segoe UI", 22), bd=0, bg="#f1f2f6", fg=palette.text).pack(fill="x",
-                                                                                                              pady=(0,
-                                                                                                                    16),
-                                                                                                              ipady=10)
+    cash_entry = tk.Entry(footer, textvariable=cash_var, justify="center", font=("Segoe UI", 22),
+                          bd=0, bg="#f1f2f6", fg=palette.text)
+    cash_entry.pack(fill="x", pady=(0, 16), ipady=10)
     tk.Button(footer, text="PLACE ORDER", bg=palette.secondary, fg=palette.win95, font=("Segoe UI", 15, "bold"), height=2,
               relief="flat", command=handle_checkout).pack(fill="x")
 
