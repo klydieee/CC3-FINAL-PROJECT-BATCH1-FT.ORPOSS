@@ -115,10 +115,10 @@ def start_login(window):
 
         def verify():
             pin = pass_var.get()
-            if role == "Admin" and pin == "admin123" or "a123" or "123":
+            if role == "Admin" and pin in ["admin123", "a123", "123"]:
                 win.destroy()
                 start_order_type(window, user_role="Admin")
-            elif role == "Kitchen" and pin == "kitchen123" or "k123" or "123":
+            elif role == "Kitchen" and pin in ["kitchen123", "k123", "123"]:
                 win.destroy()
                 start_kitchen_panel(window)
             else:
