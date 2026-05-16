@@ -15,7 +15,6 @@ from ui.launcher import start_launcher
 from ui.login import start_login
 from ui.order_status_window import open_order_status_window
 from utils.palette import palette
-from PIL import Image, ImageTk
 
 
 def start_dashboard(window, user_role="Client", order_type="Dine-In"):
@@ -40,18 +39,11 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
     buttons = {}
     stock_labels = {}
     cash_var = tk.StringVar(value="₱")
-    cash_entry = None
 
     def format_cash(*_):
         val = cash_var.get()
         digits = "".join(filter(str.isdigit, val))
-        if digits.startswith("0"):
-            digits = digits.lstrip("0") or ""
-        new_val = f"₱{digits}" if digits else "₱"
-        if cash_var.get() != new_val:
-            cash_var.set(new_val)
-        if cash_entry:
-            cash_entry.after(0, lambda: cash_entry.icursor(tk.END))
+        cash_var.set(f"₱{digits}" if digits else "₱")
 
     cash_var.trace_add("write", format_cash)
 
@@ -65,9 +57,7 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
             save_stock(name)
 
     def empty_cart():
-        if not cart:
-            messagebox.showwarning("Empty Tray", "There's nothing in your tray.")
-            return
+        if not cart: return
         if messagebox.askyesno("Clear Tray", "Remove all items from your tray?"):
             for n, q in cart.items():
                 inventory[n]["stock"] += q
@@ -184,22 +174,13 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
     sidebar.pack(side="left", fill="y")
     sidebar.pack_propagate(False)
 
-    title_row_sidebar = tk.Frame(sidebar, bg=palette.text)
-    title_row_sidebar.pack(pady=(30, 4))
-    logo_img = Image.open("assets/Logo.png")
-    logo_img = logo_img.resize((40, 40), Image.LANCZOS)
-    logo_photo = ImageTk.PhotoImage(logo_img)
-    logo_lbl = tk.Label(title_row_sidebar, image=logo_photo, bg=palette.text)
-    logo_lbl.image = logo_photo
-    logo_lbl.pack(side="left", padx=(0, 6))
-
-    tk.Label(title_row_sidebar, text="ORPOSS", fg=palette.win95, bg=palette.text,
-             font=("Segoe UI", 18, "bold")).pack(side="left")
+    tk.Label(sidebar, text="ORPOSS", fg=palette.win95, bg=palette.text,
+             font=("Segoe UI", 18, "bold")).pack(pady=(30, 4))
     tk.Label(sidebar, text="Customer Menu", fg=palette.win95, bg=palette.text,
              font=("Segoe UI", 14, "italic")).pack(pady=(0, 12))
 
     if user_role == "Admin":
-            tk.Button(sidebar, text="📺  CUSTOMER SCREEN", bg="#34495e", fg=palette.win95,
+        tk.Button(sidebar, text="📺  CUSTOMER SCREEN", bg="#34495e", fg=palette.win95,
                   font=("Segoe UI", 8, "bold"), relief="flat",
                   command=lambda: open_order_status_window(window, allow_status_update=False)
                   ).pack(fill="x", padx=15, pady=(0, 8))
@@ -377,15 +358,9 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
         x, y = event.x_root, event.y_root
         tx, ty, tw, th = tray.winfo_rootx(), tray.winfo_rooty(), tray.winfo_width(), tray.winfo_height()
         if tx <= x <= tx + tw and ty <= y <= ty + th:
-            pogi = cart_scroll_frame._parent_canvas
-            scroll_top, scroll_bottom = pogi.yview()
-            if scroll_top > 0 or scroll_bottom < 1:
-                pogi.yview_scroll(int(-21 * (event.delta / 120)), "units")
+            cart_scroll_frame._parent_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
         else:
-            menu_canvas = menu_scroll._parent_canvas
-            scroll_top, scroll_bottom = menu_canvas.yview()
-            if scroll_top > 0 or scroll_bottom < 1:
-                menu_canvas.yview_scroll(int(-21 * (event.delta / 120)), "units")
+            menu_scroll._parent_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
     window.bind_all("<MouseWheel>", _on_mousewheel)
 
@@ -398,10 +373,10 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
     total_lbl = tk.Label(tot_row, text="₱0.00", font=("Segoe UI", 26, "bold"), fg=palette.primary, bg=palette.bg)
     total_lbl.pack(side="right")
 
-    cash_entry = tk.Entry(footer, textvariable=cash_var, justify="center", font=("Segoe UI", 22), bd=0, bg="#f1f2f6",
-                          fg=palette.text)
-    cash_entry.pack(fill="x", pady=(0, 16), ipady=10)
-
+    tk.Entry(footer, textvariable=cash_var, justify="center", font=("Segoe UI", 22), bd=0, bg="#f1f2f6", fg=palette.text).pack(fill="x",
+                                                                                                              pady=(0,
+                                                                                                                    16),
+                                                                                                              ipady=10)
     tk.Button(footer, text="PLACE ORDER", bg=palette.secondary, fg=palette.win95, font=("Segoe UI", 15, "bold"), height=2,
               relief="flat", command=lambda: [play("Select.wav"), handle_checkout()]).pack(fill="x")
 
