@@ -10,6 +10,7 @@ import os
 import sys
 
 from utils.palette import palette
+from utils.sound import play
 
 ROLE_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".role")
 
@@ -139,11 +140,11 @@ def _ask_pin_then_launch(window, role):
     btn_row.pack(side="bottom", fill="x", pady=16)
     tk.Button(btn_row, text="CANCEL", font=("Helvetica", 9, "bold"),
               bg=palette.bg, fg=palette.text, relief="flat",
-              cursor="hand2", command=popup.destroy
+              cursor="hand2", command=lambda: [play("Cursor.wav"), popup.destroy()]
               ).pack(side="left", padx=24)
     tk.Button(btn_row, text="ENTER", font=("Helvetica", 9, "bold"),
               bg=palette.text, fg="white", relief="flat",
-              width=10, height=2, cursor="hand2", command=verify
+              width=10, height=2, cursor="hand2", command=lambda: [play("Cursor.wav"), verify()]
               ).pack(side="right", padx=24)
     popup.bind("<Return>", lambda e: verify())
 
@@ -244,6 +245,7 @@ def start_launcher(window):
 
         # Bind click on whole card
         def on_click(r=role):
+            play("Cursor.wav")
             _ask_pin_then_launch(window, r)
 
         for widget in [card, inner, top_row] + list(inner.winfo_children()):

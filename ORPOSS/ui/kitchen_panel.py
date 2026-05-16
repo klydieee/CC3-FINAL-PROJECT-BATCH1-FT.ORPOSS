@@ -4,6 +4,7 @@ from tkinter import messagebox
 import sys
 
 from db.orders_db import advance_order, cancel_order, get_orders
+from utils.sound import play
 from utils.helper import peso
 from utils.palette import palette
 from ui.window_utils import clear_main_window
@@ -54,8 +55,7 @@ def start_kitchen_panel(window):
               font=("Segoe UI", 9, "bold"),
               bg=palette.danger, fg="white", relief="flat", cursor="hand2",
               padx=12,
-              command=lambda: [window.attributes("-fullscreen", False),
-                               start_launcher(window)]
+              command=lambda: [play("Cursor.wav"), window.attributes("-fullscreen", False), start_launcher(window)]
               ).pack(side="right", padx=12, pady=16)
 
     # PREP, SERVE, CLAIM
@@ -157,7 +157,8 @@ def start_kitchen_panel(window):
                       font=("Segoe UI", 9, "bold"),
                       bg=btn_color, fg="white", relief="flat",
                       cursor="hand2", pady=8,
-                      command=lambda inv=order["invoice_no"]: [
+                      command=lambda inv=order["invoice_no"], st=status: [
+                          play("PopOpen.wav") if st == "preparing" else play("PopClose.wav"),
                           advance_order(inv), refresh()]
                       ).pack(side="left", fill="x", expand=True, padx=(0, 4))
 
@@ -167,7 +168,8 @@ def start_kitchen_panel(window):
                     import tkinter.messagebox as mb
                     if mb.askyesno("Cancel Order",
                                    f"Cancel order #{inv[-4:]}? This cannot be undone."):
-                        cancel_order(inv)
+                        cancel_order(inv),
+                        play("Cancel.wav"),
                         refresh()
                 tk.Button(btn_row, text="✕ CANCEL",
                           font=("Segoe UI", 9, "bold"),

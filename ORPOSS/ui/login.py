@@ -4,6 +4,7 @@ from tkinter import messagebox
 from PIL import Image, ImageTk
 
 from ui.order_type import start_order_type
+from utils.sound import play
 from ui.launcher import start_launcher
 from utils.palette import palette
 
@@ -45,7 +46,7 @@ def start_login(window):
         padx=50,
         pady=20,
         cursor="hand2",
-        command=lambda: start_order_type(window, user_role="Client")
+        command=lambda: [play("PopOpen.wav"), start_order_type(window, user_role="Client")]
     ).pack()
 
     def open_access_popup(title, icon, role):
@@ -117,7 +118,7 @@ def start_login(window):
             pin = pass_var.get()
             if role == "Admin" and pin in ["admin123", "a123", "123"]:
                 win.destroy()
-                start_order_type(window, user_role="Admin")
+                play("PopOpen.wav"); start_order_type(window, user_role="Admin")
             elif role == "Kitchen" and pin in ["kitchen123", "k123", "123"]:
                 win.destroy()
                 start_kitchen_panel(window)

@@ -7,6 +7,7 @@ import sys
 from db.products_db import inventory
 from db.orders_db import add_order
 from utils.helper import peso
+from utils.sound import play
 from utils.receipt_generator import generate_receipt_file
 from ui.receipt_popup import show_receipt_popup
 from ui.order_review import show_order_review
@@ -104,12 +105,12 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
             ctrl.pack(side="right")
             tk.Button(ctrl, text="−", width=2, bg=palette.danger, fg=palette.win95,
                       relief="flat", font=("Arial", 10, "bold"),
-                      command=lambda n=name: adjust_qty(n, -1)).pack(side="left", padx=2)
+                      command=lambda n=name: [play("Select.wav"), adjust_qty(n, -1)]).pack(side="left", padx=2)
             tk.Label(ctrl, text=str(qty), font=("Segoe UI", 10, "bold"),
                      bg=palette.bg, fg=palette.text, width=3).pack(side="left")
             tk.Button(ctrl, text="+", width=2, bg=palette.secondary, fg=palette.win95,
                       relief="flat", font=("Arial", 10, "bold"),
-                      command=lambda n=name: adjust_qty(n, 1)).pack(side="left", padx=2)
+                      command=lambda n=name: [play("Select.wav"), adjust_qty(n, 1)]).pack(side="left", padx=2)
 
         total_lbl.config(text=peso(get_total()))
         for name, frame in buttons.items():
@@ -210,13 +211,19 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
         show_category(cat)
 
     def show_category(cat):
+        # Ungrid everything first, then re-grid only matching items
+        for frame in item_frames.values():
+            frame.grid_forget()
+        num_cols = max(1, items_area.winfo_width() // 224)
+        i = 0
         for name, frame in item_frames.items():
             item_cat = inventory[name].get("category", "All")
             if cat == "All" or item_cat == cat:
-                frame.grid()
-            else:
-                frame.grid_remove()
-        items_area.after(50, recalculate_grid)
+                frame.grid(row=i // num_cols, column=i % num_cols,
+                           padx=12, pady=12, sticky="nsew")
+                i += 1
+        for col in range(num_cols):
+            items_area.grid_columnconfigure(col, weight=1)
 
     def rebuild_category_buttons():
         for w in cat_scroll_frame.winfo_children():
@@ -238,7 +245,7 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
                 height=40,
                 corner_radius=6,
                 cursor="hand2",
-                command=lambda c=cat: filter_by_category(c)
+                command=lambda c=cat: [play("Cursor.wav"), filter_by_category(c)]
             )
             btn.pack(fill="x", padx=10, pady=3)
             cat_buttons[cat] = btn
@@ -284,7 +291,9 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
             pady=(0, 6))
 
         def on_click(e, nm=n):
-            if inventory[nm]["stock"] > 0: adjust_qty(nm, 1)
+            if inventory[nm]["stock"] > 0:
+                play("Select.wav")
+                adjust_qty(nm, 1)
 
         def on_enter(e, f=frame, nm=n):
             if inventory[nm]["stock"] > 0: f.configure(fg_color="#bdbdbd")
@@ -309,11 +318,8 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
     rebuild_category_buttons()
 
     def recalculate_grid(e=None):
-        for slave in items_area.grid_slaves(): slave.grid_forget()
-        num_cols = max(1, items_area.winfo_width() // 224)
-        for i, (name, frame) in enumerate(item_frames.items()):
-            frame.grid(row=i // num_cols, column=i % num_cols, padx=12, pady=12, sticky="nsew")
-        for i in range(num_cols): items_area.grid_columnconfigure(i, weight=1)
+        # Always re-grid respecting the active category filter
+        show_category(selected_cat.get())
 
     items_area.bind("<Configure>", lambda e: items_area.after(50, recalculate_grid))
     show_category(selected_cat.get())
@@ -341,7 +347,7 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
 
     tk.Button(badge_row, text="✕  DONE WITH ORDER", font=("Segoe UI", 8, "bold"),
               bg=palette.bg, fg="#95a5a6", activeforeground=palette.danger, relief="flat",
-              command=lambda: [window.attributes("-fullscreen", False), start_login(window)]
+              command=lambda: [play("PopClose.wav"), window.attributes("-fullscreen", False), start_login(window)]
               ).pack(side="right")
 
     # Scrollable Tray
@@ -372,6 +378,6 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
                                                                                                                     16),
                                                                                                               ipady=10)
     tk.Button(footer, text="PLACE ORDER", bg=palette.secondary, fg=palette.win95, font=("Segoe UI", 15, "bold"), height=2,
-              relief="flat", command=handle_checkout).pack(fill="x")
+              relief="flat", command=lambda: [play("Select.wav"), handle_checkout()]).pack(fill="x")
 
     update_ui()
