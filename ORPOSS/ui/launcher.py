@@ -164,7 +164,8 @@ def start_launcher(window):
     header.pack(fill="x")
     header.pack_propagate(False)
 
-    logo_img = Image.open("assets/Logo.png").resize((42, 42), Image.LANCZOS)
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    logo_img = Image.open(os.path.join(BASE_DIR, "..", "assets", "Logo.png")).resize((42, 42), Image.LANCZOS)
     logo_photo = ImageTk.PhotoImage(logo_img)
     logo_lbl = tk.Label(header, image=logo_photo, bg=palette.text)
     logo_lbl.image = logo_photo
