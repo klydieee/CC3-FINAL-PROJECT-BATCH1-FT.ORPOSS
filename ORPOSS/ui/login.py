@@ -3,6 +3,7 @@ import customtkinter as ctk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 
+from ui.kitchen_panel import start_kitchen_panel
 from ui.order_type import start_order_type
 from utils.sound import play
 from ui.launcher import start_launcher
@@ -18,7 +19,6 @@ def start_login(window):
     container = tk.Frame(window, bg=palette.bg)
     container.place(relx=0.5, rely=0.5, anchor="center")
 
-    # Load and resize your logo
     logo_img = Image.open("assets/Logo.png")
     logo_img = logo_img.resize((70, 70), Image.LANCZOS)
     logo_photo = ImageTk.PhotoImage(logo_img)
@@ -30,7 +30,6 @@ def start_login(window):
     logo_label.image = logo_photo
     logo_label.pack(side="left", padx=(0, 10))
 
-    # ORPOSS text on the right
     tk.Label(
         title_row,
         text="ORPOSS",

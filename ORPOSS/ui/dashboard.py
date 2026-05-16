@@ -377,10 +377,10 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
         x, y = event.x_root, event.y_root
         tx, ty, tw, th = tray.winfo_rootx(), tray.winfo_rooty(), tray.winfo_width(), tray.winfo_height()
         if tx <= x <= tx + tw and ty <= y <= ty + th:
-            canvas = cart_scroll_frame._parent_canvas
-            scroll_top, scroll_bottom = canvas.yview()
+            pogi = cart_scroll_frame._parent_canvas
+            scroll_top, scroll_bottom = pogi.yview()
             if scroll_top > 0 or scroll_bottom < 1:
-                canvas.yview_scroll(int(-21 * (event.delta / 120)), "units")
+                pogi.yview_scroll(int(-21 * (event.delta / 120)), "units")
         else:
             menu_canvas = menu_scroll._parent_canvas
             scroll_top, scroll_bottom = menu_canvas.yview()
