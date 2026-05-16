@@ -1,4 +1,4 @@
-
+import os
 import sys
 if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -23,6 +23,12 @@ def main():
     sw = root.winfo_screenwidth()
     sh = root.winfo_screenheight()
     root.geometry(f"{width}x{height}+{(sw-width)//2}+{(sh-height)//2}")
+
+    try:
+        root.iconbitmap(os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "icon.ico"))
+    except:
+        pass
+
     start_launcher(root)
     root.mainloop()
 

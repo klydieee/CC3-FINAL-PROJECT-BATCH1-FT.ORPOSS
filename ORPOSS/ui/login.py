@@ -4,6 +4,7 @@ from tkinter import messagebox
 from PIL import Image, ImageTk
 
 from ui.order_type import start_order_type
+from utils.sound import play
 from ui.launcher import start_launcher
 from utils.palette import palette
 
@@ -17,13 +18,26 @@ def start_login(window):
     container = tk.Frame(window, bg=palette.bg)
     container.place(relx=0.5, rely=0.5, anchor="center")
 
+    # Load and resize your logo
+    logo_img = Image.open("assets/Logo.png")
+    logo_img = logo_img.resize((70, 70), Image.LANCZOS)
+    logo_photo = ImageTk.PhotoImage(logo_img)
+
+    title_row = tk.Frame(container, bg=palette.bg)
+    title_row.pack()
+
+    logo_label = tk.Label(title_row, image=logo_photo, bg=palette.bg)
+    logo_label.image = logo_photo
+    logo_label.pack(side="left", padx=(0, 10))
+
+    # ORPOSS text on the right
     tk.Label(
-        container,
+        title_row,
         text="ORPOSS",
         font=("Verdana", 52, "bold"),
         bg=palette.bg,
         fg=palette.text
-    ).pack()
+    ).pack(side="left")
 
     tk.Label(
         container,
@@ -45,7 +59,7 @@ def start_login(window):
         padx=50,
         pady=20,
         cursor="hand2",
-        command=lambda: start_order_type(window, user_role="Client")
+        command=lambda: [play("PopOpen.wav"), start_order_type(window, user_role="Client")]
     ).pack()
 
     def open_access_popup(title, icon, role):
@@ -117,7 +131,7 @@ def start_login(window):
             pin = pass_var.get()
             if role == "Admin" and pin in ["admin123", "a123", "123"]:
                 win.destroy()
-                start_order_type(window, user_role="Admin")
+                play("PopOpen.wav"); start_order_type(window, user_role="Admin")
             elif role == "Kitchen" and pin in ["kitchen123", "k123", "123"]:
                 win.destroy()
                 start_kitchen_panel(window)

@@ -2,6 +2,8 @@ import tkinter as tk
 from utils.palette import palette
 
 
+from utils.sound import play
+
 def start_order_type(window, user_role="Client"):
     from ui.dashboard import start_dashboard
     from ui.login import start_login
@@ -99,6 +101,7 @@ def start_order_type(window, user_role="Client"):
                 w.config(bg=color)
 
         def on_click(_event):
+            play("PopOpen.wav")
             start_dashboard(window, user_role=user_role, order_type=order_type_val)
 
         # Bind events

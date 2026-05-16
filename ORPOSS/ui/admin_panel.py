@@ -3,6 +3,7 @@ from tkinter import messagebox, ttk, filedialog
 import os
 import re
 import threading
+from utils.sound import play
 
 from datetime import datetime, timedelta
 from db.products_db import inventory, update_image_url
@@ -30,7 +31,8 @@ def start_admin_panel(window, back_to_pos_callback):
              font=("Segoe UI", 16, "bold"), pady=40).pack()
 
     tk.Button(sidebar, text="RETURN TO LAUNCHER", bg=palette.danger, fg="white", relief="flat",
-              font=BTN_FONT, cursor="hand2", command=back_to_pos_callback).pack(
+              font=BTN_FONT, cursor="hand2",
+              command=lambda: [play("Cursor.wav"), back_to_pos_callback()]).pack(
               side="bottom", fill="x", padx=15, pady=30)
 
     # ── Main Content ──────────────────────────────────────────────────────────
@@ -43,16 +45,18 @@ def start_admin_panel(window, back_to_pos_callback):
     inv_frame.pack(side="left", fill="both", expand=True)
 
     # 1. Added "cost" to columns
-    tree = ttk.Treeview(inv_frame, columns=("name", "price", "cost", "stock"), show="headings", selectmode="extended")
-    tree.heading("name",  text="ITEM NAME")
-    tree.heading("price", text="UNIT PRICE")
-    tree.heading("cost",  text="UNIT COST") # Added heading
-    tree.heading("stock", text="STOCK COUNT")
+    tree = ttk.Treeview(inv_frame, columns=("name", "price", "cost", "stock", "category"), show="headings", selectmode="extended")
+    tree.heading("name",     text="ITEM NAME")
+    tree.heading("price",    text="UNIT PRICE")
+    tree.heading("cost",     text="UNIT COST")
+    tree.heading("stock",    text="STOCK COUNT")
+    tree.heading("category", text="CATEGORY")
 
-    tree.column("name",  width=200, anchor="w")
-    tree.column("price", width=100, anchor="center")
-    tree.column("cost",  width=100, anchor="center") # Added column
-    tree.column("stock", width=100, anchor="center")
+    tree.column("name",     width=180, anchor="w")
+    tree.column("price",    width=90,  anchor="center")
+    tree.column("cost",     width=90,  anchor="center")
+    tree.column("stock",    width=90,  anchor="center")
+    tree.column("category", width=110, anchor="center")
 
     # Visual tags for the Admin
     tree.tag_configure("lowstock", background="#ff7675", foreground="white")
@@ -93,9 +97,10 @@ def start_admin_panel(window, back_to_pos_callback):
             if filter_low and stock >= 10:
                 continue
                 
-            # Insert into tree with all 4 columns: Name, Price, Cost, Stock
-            tree.insert("", "end", 
-                        values=(name.upper(), peso(price), peso(cost), stock), 
+            # Insert into tree with all 5 columns: Name, Price, Cost, Stock, Category
+            cat = data.get("category", "All")
+            tree.insert("", "end",
+                        values=(name.upper(), peso(price), peso(cost), stock, cat),
                         tags=tuple(tags))
                         
         return low_count
@@ -213,7 +218,7 @@ def start_admin_panel(window, back_to_pos_callback):
                     except:
                         continue
 
-        tk.Button(filter_bar, text="APPLY", command=render_logs,
+        tk.Button(filter_bar, text="APPLY", command=lambda: [play("Cursor.wav"), render_logs()],
                   bg=palette.primary, fg="white", font=("Segoe UI", 9, "bold"),
                   relief="flat", padx=15).pack(side="left", padx=10)
 
@@ -287,14 +292,14 @@ def start_admin_panel(window, back_to_pos_callback):
                           bg=palette.primary if p == "Daily" else "white",
                           fg="white" if p == "Daily" else palette.text,
                           relief="flat", padx=10, pady=6, cursor="hand2",
-                          command=make_period_btn(p))
+                          command=lambda p=p: [play("Cursor.wav"), make_period_btn(p)()])
             b.pack(side="left", padx=2)
             period_btns.append(b)
 
         # Manual refresh only — no auto-polling
         tk.Button(btn_row, text="⟳  Refresh", font=("Segoe UI", 9, "bold"),
                   bg="#f39c12", fg="white", relief="flat", padx=10, pady=6,
-                  cursor="hand2", command=lambda: render_chart()
+                  cursor="hand2", command=lambda: [play("Cursor.wav"), render_chart()]
                   ).pack(side="left", padx=(12, 0))
 
         # ── Chart area ────────────────────────────────────────────────────────
@@ -439,6 +444,12 @@ def start_admin_panel(window, back_to_pos_callback):
     stock_entry = tk.Entry(edit_frame, justify="center", font=("Segoe UI", 12),
                            bg=palette.bg, relief="flat")
     stock_entry.pack(fill="x", pady=(5, 15), ipady=8)
+
+    tk.Label(edit_frame, text="Category:", bg="white").pack(anchor="w")
+    cat_var = tk.StringVar()
+    cat_entry = tk.Entry(edit_frame, textvariable=cat_var, justify="center", font=("Segoe UI", 12),
+                         bg=palette.bg, relief="flat")
+    cat_entry.pack(fill="x", pady=(5, 15), ipady=8)
     
     tk.Label(edit_frame, text="New Cost (₱):", bg="white").pack(anchor="w")
     cost_entry = tk.Entry(edit_frame, justify="center", font=("Segoe UI", 12),
@@ -456,35 +467,32 @@ def start_admin_panel(window, back_to_pos_callback):
             c = float(cost_entry.get())  if cost_entry.get() else None
 
             # Import the specific database functions
-            from db.products_db import save_price, set_stock, save_cost 
-            
+            cat_val = cat_var.get().strip() or None
+            from db.products_db import save_price, set_stock, save_cost, save_category
+
             for item_id in selected:
                 name = tree.item(item_id)['values'][0]
-                # Find the correct key in your inventory dictionary
                 key  = next((k for k in inventory if k.upper() == name), name)
-                
-                # 2. Determine final values to check against guardrails
+
                 final_p = p if p is not None else inventory[key]['price']
                 final_c = c if c is not None else inventory[key].get('cost', 0)
-                profit = final_p - final_c
+                profit  = final_p - final_c
 
-                # Guardrail: Prevent selling at a loss
                 if final_p <= final_c:
-                    messagebox.showerror("Invalid Pricing", 
+                    messagebox.showerror("Invalid Pricing",
                         f"Error for {name}: Selling price (₱{final_p}) cannot be lower than cost (₱{final_c}).")
                     return
-                
-                # Guardrail: Warning for low profit margin
+
                 if profit < 5:
-                    confirm = messagebox.askyesno("Low Margin Warning", 
+                    confirm = messagebox.askyesno("Low Margin Warning",
                         f"Profit for '{name}' will only be ₱{profit:.2f}. Proceed anyway?")
                     if not confirm:
                         continue
 
-                # 3. Apply changes to Database
-                if p is not None: save_price(key, p)
-                if s is not None: set_stock(key, s)
-                if c is not None: save_cost(key, c)
+                if p is not None:   save_price(key, p)
+                if s is not None:   set_stock(key, s)
+                if c is not None:   save_cost(key, c)
+                if cat_val:         save_category(key, cat_val)
 
             # 4. Sync and Refresh UI
             save_to_disk()
@@ -501,7 +509,7 @@ def start_admin_panel(window, back_to_pos_callback):
             messagebox.showerror("Input Error", "Please ensure Price, Cost, and Stock are valid numbers.")
 
     tk.Button(edit_frame, text="SAVE CHANGES", bg=palette.secondary, fg="white", font=BTN_FONT,
-              relief="flat", pady=BTN_PAD_Y, cursor="hand2", command=save_edits).pack(fill="x")
+              relief="flat", pady=BTN_PAD_Y, cursor="hand2", command=lambda: [play("Cursor.wav"), save_edits()]).pack(fill="x")
 
     # ── Image Storage Section ─────────────────────────────────────────────────
     img_store = ImageStorage()
@@ -550,11 +558,11 @@ def start_admin_panel(window, back_to_pos_callback):
 
     tk.Button(btn_toggle_row, text="☁  USE CLOUDINARY", bg=palette.primary, fg="white",
               relief="flat", font=("Segoe UI", 8, "bold"), padx=6, pady=5, cursor="hand2",
-              command=lambda: _switch_mode("cloudinary")).pack(side="left", expand=True, fill="x", padx=(0, 4))
+              command=lambda: [play("Cursor.wav"), _switch_mode("cloudinary")]).pack(side="left", expand=True, fill="x", padx=(0, 4))
 
     tk.Button(btn_toggle_row, text="💾  USE LOCAL", bg="#9b59b6", fg="white",
               relief="flat", font=("Segoe UI", 8, "bold"), padx=6, pady=5, cursor="hand2",
-              command=lambda: _switch_mode("local")).pack(side="left", expand=True, fill="x")
+              command=lambda: [play("Cursor.wav"), _switch_mode("local")]).pack(side="left", expand=True, fill="x")
 
     upload_status_lbl = tk.Label(img_frame, text="Select one item, then upload.",
                                  bg="white", font=("Segoe UI", 8), fg="#7f8c8d",
@@ -589,7 +597,7 @@ def start_admin_panel(window, back_to_pos_callback):
         threading.Thread(target=_do_upload, daemon=True).start()
 
     tk.Button(img_frame, text="📁  UPLOAD IMAGE", bg=palette.text, fg="white", relief="flat",
-              font=BTN_FONT, pady=8, cursor="hand2", command=_upload_image).pack(fill="x")
+              font=BTN_FONT, pady=8, cursor="hand2", command=lambda: [play("Cursor.wav"), _upload_image()]).pack(fill="x")
 
     def _remove_image():
         selected = tree.selection()
@@ -609,7 +617,7 @@ def start_admin_panel(window, back_to_pos_callback):
 
     tk.Button(img_frame, text="🗑  REMOVE IMAGE", bg=palette.danger, fg="white", relief="flat",
               font=("Segoe UI", 9, "bold"), pady=6, cursor="hand2",
-              command=_remove_image).pack(fill="x", pady=(6, 0))
+              command=lambda: [play("Cursor.wav"), _remove_image()]).pack(fill="x", pady=(6, 0))
 
     # ── Inventory Tools ───────────────────────────────────────────────────────
     maint_frame = tk.LabelFrame(control_panel, text=" Inventory Tools ", bg="white",
@@ -618,11 +626,11 @@ def start_admin_panel(window, back_to_pos_callback):
 
     tk.Button(maint_frame, text="SHOW ALL ITEMS", bg=palette.text, fg="white",
               font=("Segoe UI", 9, "bold"), relief="flat", pady=8,
-              command=lambda: refresh_table(False)).pack(fill="x", pady=(0, 5))
+              command=lambda: [play("Cursor.wav"), refresh_table(False)]).pack(fill="x", pady=(0, 5))
 
     tk.Button(maint_frame, text="SHOW LOW STOCK", bg="#f39c12", fg="white",
               font=("Segoe UI", 9, "bold"), relief="flat", pady=8,
-              command=lambda: refresh_table(True)).pack(fill="x", pady=(0, 15))
+              command=lambda: [play("Cursor.wav"), refresh_table(True)]).pack(fill="x", pady=(0, 15))
 
     def restock_all():
         if messagebox.askyesno("Restock All", "Add 100 units to all items?"):
@@ -632,7 +640,7 @@ def start_admin_panel(window, back_to_pos_callback):
             refresh_table()
 
     tk.Button(maint_frame, text="RESTOCK ALL (100)", bg="#9b59b6", fg="white", font=BTN_FONT,
-              relief="flat", pady=BTN_PAD_Y, cursor="hand2", command=restock_all).pack(fill="x")
+              relief="flat", pady=BTN_PAD_Y, cursor="hand2", command=lambda: [play("Cursor.wav"), restock_all()]).pack(fill="x")
 
     # ── Add / Delete Product ─────────────────────────────────────────────────
     product_frame = tk.LabelFrame(control_panel, text=" Add / Delete Product ", bg="white",
@@ -654,6 +662,12 @@ def start_admin_panel(window, back_to_pos_callback):
                                bg=palette.bg, relief="flat")
     new_stock_entry.insert(0, "50")
     new_stock_entry.pack(fill="x", pady=(4, 12), ipady=7)
+
+    tk.Label(product_frame, text="Category:", bg="white").pack(anchor="w")
+    new_cat_entry = tk.Entry(product_frame, justify="center", font=("Segoe UI", 11),
+                             bg=palette.bg, relief="flat")
+    new_cat_entry.insert(0, "All")
+    new_cat_entry.pack(fill="x", pady=(4, 12), ipady=7)
 
     tk.Label(product_frame, text="Unit Cost (₱):", bg="white").pack(anchor="w")
     new_cost_entry = tk.Entry(product_frame, justify="center", font=("Segoe UI", 11), bg=palette.bg, relief="flat")
@@ -727,11 +741,11 @@ def start_admin_panel(window, back_to_pos_callback):
 
     tk.Button(product_frame, text="➕  ADD PRODUCT", bg=palette.secondary, fg="white",
               font=BTN_FONT, relief="flat", pady=BTN_PAD_Y, cursor="hand2",
-              command=add_product).pack(fill="x", pady=(0, 8))
+              command=lambda: [play("PopOpen.wav"), add_product()]).pack(fill="x", pady=(0, 8))
 
     tk.Button(product_frame, text="🗑  DELETE SELECTED", bg=palette.danger, fg="white",
               font=BTN_FONT, relief="flat", pady=BTN_PAD_Y, cursor="hand2",
-              command=delete_selected).pack(fill="x")
+              command=lambda: [play("PopClose.wav"), delete_selected()]).pack(fill="x")
 
 
     # ── Reports & Logs ────────────────────────────────────────────────────────
@@ -741,11 +755,11 @@ def start_admin_panel(window, back_to_pos_callback):
 
     tk.Button(reports_frame, text="📋  VIEW SALES HISTORY", bg=palette.primary, fg="white",
               font=BTN_FONT, relief="flat", pady=BTN_PAD_Y, cursor="hand2",
-              command=open_history_log).pack(fill="x", pady=(0, 8))
+              command=lambda: [play("PopOpen.wav"), open_history_log()]).pack(fill="x", pady=(0, 8))
 
     tk.Button(reports_frame, text="📊  SALES ANALYTICS", bg=palette.secondary, fg="white",
               font=BTN_FONT, relief="flat", pady=BTN_PAD_Y, cursor="hand2",
-              command=open_sales_chart).pack(fill="x")
+              command=lambda: [play("PopOpen.wav"), open_sales_chart()]).pack(fill="x")
 
     # ── Initial Load ──────────────────────────────────────────────────────────
     low_stock_found = refresh_table()

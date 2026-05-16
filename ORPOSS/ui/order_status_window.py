@@ -1,6 +1,7 @@
 import tkinter as tk
 
 from db.orders_db import advance_order, get_orders
+from utils.sound import play
 from utils.helper import peso
 from utils.palette import palette
 
@@ -174,6 +175,10 @@ def open_order_status_window(parent_window, allow_status_update=False):
     # ── Pusher: triggers immediate refresh on order events ────────────────────
     def on_pusher_event(data):
         if win.winfo_exists():
+            if data.get("status") == "serving":
+                play("PopClose.wav")
+            elif data.get("status") == "preparing":
+                play("PopOpen.wav")
             win.after(0, refresh)
 
     from utils.pusher_client import subscribe

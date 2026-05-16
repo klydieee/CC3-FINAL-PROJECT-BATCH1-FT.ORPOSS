@@ -1,19 +1,18 @@
 """
 db/connection.py — MySQL connection with fallback chain:
   1. LAN MySQL (XAMPP on server PC) — fastest, works without internet
-  2. Aiven cloud MySQL          — works with internet, no LAN needed
-  3. Offline (inventory.py)     — read-only fallback
+  2. Aiven cloud MySQL              — works with internet, no LAN needed
+  3. Offline (inventory.py)         — read-only fallback
 
 Set DB_MODE=lan, DB_MODE=cloud, or DB_MODE=auto (default) in .env.
-Auto mode tries LAN first, then cloud.
 """
 import os
 import threading
 
-_lock    = threading.Lock()
-_conn    = None
-_offline = False
-_active_mode = None   # 'lan' | 'cloud' | None
+_lock        = threading.Lock()
+_conn        = None
+_offline     = False
+_active_mode = None
 
 
 def _load_env():
@@ -25,9 +24,9 @@ def _load_env():
             for line in f:
                 line = line.strip()
                 if line and not line.startswith("#") and "=" in line:
-                    k, v = line.split("=", 1)
-                    key   = k.strip()
-                    value = v.strip().strip("'").strip('"')
+                    k, v   = line.split("=", 1)
+                    key    = k.strip()
+                    value  = v.strip().strip("'").strip('"')
                     os.environ[key] = value
                     env[key] = value
     return env
@@ -35,54 +34,92 @@ def _load_env():
 
 def _run_migrations(conn):
     cur = conn.cursor()
+
+    # ── order_items ───────────────────────────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS `order_items` (
-          `id`        INT NOT NULL AUTO_INCREMENT,
-          `name`      VARCHAR(100) NOT NULL,
+          `id`        INT           NOT NULL AUTO_INCREMENT,
+          `name`      VARCHAR(100)  NOT NULL,
           `price`     DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-          `stock`     INT NOT NULL DEFAULT 0,
-          `image_url` VARCHAR(500) DEFAULT NULL,
+          `stock`     INT           NOT NULL DEFAULT 0,
+          `image_url` VARCHAR(500)  DEFAULT NULL,
+          `cost`      DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+          `category`  VARCHAR(100)  DEFAULT 'All',
           PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
+    # Safe column additions for databases that existed before these columns
+    for col_sql in [
+        "ALTER TABLE `order_items` ADD COLUMN IF NOT EXISTS `cost`     DECIMAL(10,2) NOT NULL DEFAULT 0.00",
+        "ALTER TABLE `order_items` ADD COLUMN IF NOT EXISTS `category` VARCHAR(100)  DEFAULT 'All'",
+    ]:
+        try:
+            cur.execute(col_sql)
+        except Exception:
+            pass
+
+    # ── orders ────────────────────────────────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS `orders` (
-          `id`           INT NOT NULL AUTO_INCREMENT,
-          `invoice_no`   VARCHAR(20) NOT NULL UNIQUE,
+          `id`           INT          NOT NULL AUTO_INCREMENT,
+          `invoice_no`   VARCHAR(20)  NOT NULL UNIQUE,
           `order_type`   ENUM('Dine-In','Take-Out') NOT NULL DEFAULT 'Dine-In',
-          `payment_mode` ENUM('counter','kiosk') NOT NULL DEFAULT 'counter',
+          `payment_mode` ENUM('counter','kiosk')    NOT NULL DEFAULT 'counter',
           `total`        DECIMAL(10,2) NOT NULL,
           `cash`         DECIMAL(10,2) NOT NULL DEFAULT 0.00,
           `change_amt`   DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-          `status`       ENUM('preparing','serving','claimed') NOT NULL DEFAULT 'preparing',
+          `status`       ENUM('preparing','serving','claimed','cancelled') NOT NULL DEFAULT 'preparing',
           `created_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
           `serving_at`   DATETIME DEFAULT NULL,
           `claimed_at`   DATETIME DEFAULT NULL,
           PRIMARY KEY (`id`),
-          INDEX `idx_status` (`status`),
+          INDEX `idx_status`  (`status`),
           INDEX `idx_created` (`created_at`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
+    # Add 'cancelled' to status ENUM if this is an older DB
+    try:
+        cur.execute("""
+            ALTER TABLE `orders`
+            MODIFY COLUMN `status`
+            ENUM('preparing','serving','claimed','cancelled') NOT NULL DEFAULT 'preparing'
+        """)
+    except Exception:
+        pass
+
+    # ── order_lines ───────────────────────────────────────────────────────────
     cur.execute("""
         CREATE TABLE IF NOT EXISTS `order_lines` (
-          `id`         INT NOT NULL AUTO_INCREMENT,
-          `invoice_no` VARCHAR(20) NOT NULL,
-          `name`       VARCHAR(100) NOT NULL,
-          `qty`        INT NOT NULL,
+          `id`         INT           NOT NULL AUTO_INCREMENT,
+          `invoice_no` VARCHAR(20)   NOT NULL,
+          `name`       VARCHAR(100)  NOT NULL,
+          `qty`        INT           NOT NULL,
           `price`      DECIMAL(10,2) NOT NULL,
+          `product_id` INT           DEFAULT NULL,
           PRIMARY KEY (`id`),
           INDEX `idx_invoice` (`invoice_no`),
           FOREIGN KEY (`invoice_no`) REFERENCES `orders`(`invoice_no`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
-    cur.execute("SELECT COUNT(*) FROM `order_items`")
+    try:
+        cur.execute("ALTER TABLE `order_lines` ADD COLUMN IF NOT EXISTS `product_id` INT DEFAULT NULL")
+    except Exception:
+        pass
+
+    # ── Seed default menu if empty ────────────────────────────────────────────
+    cur.execute("SELECT COUNT(*) AS cnt FROM `order_items`")
     if cur.fetchone()[0] == 0:
         cur.executemany(
-            "INSERT INTO `order_items` (`name`, `price`, `stock`) VALUES (%s, %s, %s)",
+            "INSERT INTO `order_items` (`name`, `price`, `stock`, `cost`, `category`) VALUES (%s,%s,%s,%s,%s)",
             [
-                ('Burger', 55.00, 50), ('Fries', 35.00, 50), ('Chicken', 99.00, 50),
-                ('Soda', 25.00, 50), ('Hotdog', 40.00, 50), ('Ice Cream', 35.00, 50),
-                ('Extra Gravy', 15.00, 50), ('Extra Rice', 20.00, 50),
+                ('Burger',      55.00, 50, 30.00, 'Main'),
+                ('Fries',       35.00, 50, 20.00, 'Sides'),
+                ('Chicken',     99.00, 50, 60.00, 'Main'),
+                ('Soda',        25.00, 50, 15.00, 'Drinks'),
+                ('Hotdog',      40.00, 50, 25.00, 'Main'),
+                ('Ice Cream',   35.00, 50, 20.00, 'Dessert'),
+                ('Extra Gravy', 15.00, 50, 10.00, 'Sides'),
+                ('Extra Rice',  20.00, 50, 12.00, 'Sides'),
             ]
         )
         conn.commit()
@@ -110,13 +147,11 @@ def get_connection():
             if _conn is not None and _conn.is_connected():
                 return _conn
 
-            env  = _load_env()
-            mode = env.get("DB_MODE", "auto").lower()
+            env     = _load_env()
+            mode    = env.get("DB_MODE", "auto").lower()
+            db_name = env.get("DB_NAME", "ORPOSS")
+            timeout = 5
 
-            db_name  = env.get("DB_NAME", "ORPOSS")
-            timeout  = 5
-
-            # ── LAN config (XAMPP on server PC) ───────────────────────────
             lan_config = dict(
                 host               = env.get("DB_HOST_LAN", "localhost"),
                 port               = int(env.get("DB_PORT_LAN", 3306)),
@@ -127,7 +162,6 @@ def get_connection():
                 connection_timeout = timeout,
             )
 
-            # ── Cloud config (Aiven) ──────────────────────────────────────
             cloud_config = dict(
                 host               = env.get("DB_HOST", ""),
                 port               = int(env.get("DB_PORT", 3306)),
@@ -144,13 +178,11 @@ def get_connection():
                 cloud_config["ssl_ca"]          = ssl_ca
                 cloud_config["ssl_verify_cert"] = True
 
-            # ── Connection priority ───────────────────────────────────────
-            attempts = []
             if mode == "lan":
                 attempts = [("LAN", lan_config)]
             elif mode == "cloud":
                 attempts = [("Cloud/Aiven", cloud_config)]
-            else:  # auto: LAN first, cloud fallback
+            else:
                 attempts = [("LAN", lan_config), ("Cloud/Aiven", cloud_config)]
 
             last_err = None
@@ -172,7 +204,6 @@ def get_connection():
 
 
 def active_mode():
-    """Returns 'LAN', 'Cloud/Aiven', or None (offline)."""
     return _active_mode
 
 

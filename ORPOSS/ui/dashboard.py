@@ -7,6 +7,7 @@ import sys
 from db.products_db import inventory
 from db.orders_db import add_order
 from utils.helper import peso
+from utils.sound import play
 from utils.receipt_generator import generate_receipt_file
 from ui.receipt_popup import show_receipt_popup
 from ui.order_review import show_order_review
@@ -14,6 +15,7 @@ from ui.launcher import start_launcher
 from ui.login import start_login
 from ui.order_status_window import open_order_status_window
 from utils.palette import palette
+from PIL import Image, ImageTk
 
 
 def start_dashboard(window, user_role="Client", order_type="Dine-In"):
@@ -38,14 +40,17 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
     buttons = {}
     stock_labels = {}
     cash_var = tk.StringVar(value="₱")
+    cash_entry = None
 
     def format_cash(*_):
         val = cash_var.get()
         digits = "".join(filter(str.isdigit, val))
-        digits = digits.lstrip("0")
-        correct = f"₱{digits}" if digits else "₱"
-        if val != correct:
-            cash_var.set(correct)
+        if digits.startswith("0"):
+            digits = digits.lstrip("0") or ""
+        new_val = f"₱{digits}" if digits else "₱"
+        if cash_var.get() != new_val:
+            cash_var.set(new_val)
+        if cash_entry:
             cash_entry.after(0, lambda: cash_entry.icursor(tk.END))
 
     cash_var.trace_add("write", format_cash)
@@ -60,17 +65,18 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
             save_stock(name)
 
     def empty_cart():
-        if not cart: return
+        if not cart:
+            messagebox.showwarning("Empty Tray", "There's nothing in your tray.")
+            return
         if messagebox.askyesno("Clear Tray", "Remove all items from your tray?"):
             for n, q in cart.items():
                 inventory[n]["stock"] += q
-            save_inventory()
             cart.clear()
             update_ui()
 
     def adjust_qty(name, amt):
         if amt > 0 and inventory[name]["stock"] > 0:
-            cart[name] = cart.get(name, 0) + amt
+            cart[name] = cart.get(name, 0) + 1
             inventory[name]["stock"] -= 1
         elif amt < 0 and name in cart:
             cart[name] -= 1
@@ -109,12 +115,12 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
             ctrl.pack(side="right")
             tk.Button(ctrl, text="−", width=2, bg=palette.danger, fg=palette.win95,
                       relief="flat", font=("Arial", 10, "bold"),
-                      command=lambda n=name: adjust_qty(n, -1)).pack(side="left", padx=2)
+                      command=lambda n=name: [play("Select.wav"), adjust_qty(n, -1)]).pack(side="left", padx=2)
             tk.Label(ctrl, text=str(qty), font=("Segoe UI", 10, "bold"),
                      bg=palette.bg, fg=palette.text, width=3).pack(side="left")
             tk.Button(ctrl, text="+", width=2, bg=palette.secondary, fg=palette.win95,
                       relief="flat", font=("Arial", 10, "bold"),
-                      command=lambda n=name: adjust_qty(n, 1)).pack(side="left", padx=2)
+                      command=lambda n=name: [play("Select.wav"), adjust_qty(n, 1)]).pack(side="left", padx=2)
 
         total_lbl.config(text=peso(get_total()))
         for name, frame in buttons.items():
@@ -165,26 +171,103 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
             # or it's inside the summary for the generator to find.
             generate_receipt_file(cash, change, inv_no, total, summary, mode)
             add_order(inv_no, order_type, mode, total, summary, cash=cash, change_amt=change)
-            save_inventory()
             cart.clear()
             cash_var.set("₱")
-            show_receipt_popup(window, cash, change, inv_no, total, summary, mode,on_done=lambda: start_login(window))
+            save_inventory()
+            start_login(window)
+            show_receipt_popup(window, cash, change, inv_no, total, summary, mode)
 
         show_order_review(window, cash, total, summary, finalize)
 
     # 1. Sidebar
-    sidebar = tk.Frame(window, bg=palette.text, width=180)
+    sidebar = tk.Frame(window, bg=palette.text, width=200)
     sidebar.pack(side="left", fill="y")
     sidebar.pack_propagate(False)
 
-    tk.Label(sidebar, text="ORPOSS", fg=palette.win95, bg=palette.text, font=("Segoe UI", 18, "bold")).pack(pady=(30, 4))
-    tk.Label(sidebar, text="Customer Menu", fg=palette.win95, bg=palette.text, font=("Segoe UI", 14, "italic")).pack(pady=(0, 4))
+    title_row_sidebar = tk.Frame(sidebar, bg=palette.text)
+    title_row_sidebar.pack(pady=(30, 4))
+    logo_img = Image.open("assets/Logo.png")
+    logo_img = logo_img.resize((40, 40), Image.LANCZOS)
+    logo_photo = ImageTk.PhotoImage(logo_img)
+    logo_lbl = tk.Label(title_row_sidebar, image=logo_photo, bg=palette.text)
+    logo_lbl.image = logo_photo
+    logo_lbl.pack(side="left", padx=(0, 6))
+
+    tk.Label(title_row_sidebar, text="ORPOSS", fg=palette.win95, bg=palette.text,
+             font=("Segoe UI", 18, "bold")).pack(side="left")
+    tk.Label(sidebar, text="Customer Menu", fg=palette.win95, bg=palette.text,
+             font=("Segoe UI", 14, "italic")).pack(pady=(0, 12))
 
     if user_role == "Admin":
-        tk.Button(sidebar, text="📺  CUSTOMER SCREEN", bg="#34495e", fg=palette.win95, font=("Segoe UI", 8, "bold"),
-                  relief="flat",
+            tk.Button(sidebar, text="📺  CUSTOMER SCREEN", bg="#34495e", fg=palette.win95,
+                  font=("Segoe UI", 8, "bold"), relief="flat",
                   command=lambda: open_order_status_window(window, allow_status_update=False)
                   ).pack(fill="x", padx=15, pady=(0, 8))
+
+    # ── Category filter sidebar ───────────────────────────────────────────────
+    tk.Frame(sidebar, bg="#34495e", height=1).pack(fill="x", padx=20, pady=(0, 10))
+    tk.Label(sidebar, text="CATEGORIES", fg="#95a5a6", bg=palette.text,
+             font=("Segoe UI", 8, "bold"), anchor="center").pack(fill="x", pady=(0, 6))
+
+    # Scrollable category list — CTkScrollableFrame matches the rest of the app
+    cat_scroll_frame = ctk.CTkScrollableFrame(
+        sidebar, fg_color=palette.text, corner_radius=0,
+        scrollbar_button_color="#34495e",
+        scrollbar_button_hover_color=palette.primary,
+    )
+    cat_scroll_frame.pack(fill="both", expand=True, padx=0, pady=0)
+
+    selected_cat = tk.StringVar(value="All")
+    cat_buttons = {}
+
+    def filter_by_category(cat):
+        selected_cat.set(cat)
+        for c, btn in cat_buttons.items():
+            btn.configure(
+                fg_color=palette.primary if c == cat else "transparent",
+                font=ctk.CTkFont("Segoe UI", 13, "bold") if c == cat else ctk.CTkFont("Segoe UI", 13)
+            )
+        show_category(cat)
+
+    def show_category(cat):
+        # Ungrid everything first, then re-grid only matching items
+        for frame in item_frames.values():
+            frame.grid_forget()
+        num_cols = max(1, items_area.winfo_width() // 224)
+        i = 0
+        for name, frame in item_frames.items():
+            item_cat = inventory[name].get("category", "All")
+            if cat == "All" or item_cat == cat:
+                frame.grid(row=i // num_cols, column=i % num_cols,
+                           padx=12, pady=12, sticky="nsew")
+                i += 1
+        for col in range(num_cols):
+            items_area.grid_columnconfigure(col, weight=1)
+
+    def rebuild_category_buttons():
+        for w in cat_scroll_frame.winfo_children():
+            w.destroy()
+        cat_buttons.clear()
+        cats = ["All"] + sorted(set(
+            inventory[n].get("category", "All")
+            for n in inventory
+            if inventory[n].get("category", "All") != "All"
+        ))
+        for cat in cats:
+            btn = ctk.CTkButton(
+                cat_scroll_frame, text=cat,
+                font=ctk.CTkFont("Segoe UI", 13, "bold" if cat == selected_cat.get() else "normal"),
+                fg_color=palette.primary if cat == selected_cat.get() else "transparent",
+                text_color="white",
+                hover_color="#34495e",
+                anchor="center",
+                height=40,
+                corner_radius=6,
+                cursor="hand2",
+                command=lambda c=cat: [play("Cursor.wav"), filter_by_category(c)]
+            )
+            btn.pack(fill="x", padx=10, pady=3)
+            cat_buttons[cat] = btn
 
     # 2. Menu Grid
     menu_scroll = ctk.CTkScrollableFrame(window, fg_color=palette.bg, corner_radius=0)
@@ -227,7 +310,9 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
             pady=(0, 6))
 
         def on_click(e, nm=n):
-            if inventory[nm]["stock"] > 0: adjust_qty(nm, 1)
+            if inventory[nm]["stock"] > 0:
+                play("Select.wav")
+                adjust_qty(nm, 1)
 
         def on_enter(e, f=frame, nm=n):
             if inventory[nm]["stock"] > 0: f.configure(fg_color="#bdbdbd")
@@ -249,14 +334,14 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
 
     for name in inventory: item_frames[name] = make_box(name)
 
+    rebuild_category_buttons()
+
     def recalculate_grid(e=None):
-        for slave in items_area.grid_slaves(): slave.grid_forget()
-        num_cols = max(1, items_area.winfo_width() // 224)
-        for i, (name, frame) in enumerate(item_frames.items()):
-            frame.grid(row=i // num_cols, column=i % num_cols, padx=12, pady=12, sticky="nsew")
-        for i in range(num_cols): items_area.grid_columnconfigure(i, weight=1)
+        # Always re-grid respecting the active category filter
+        show_category(selected_cat.get())
 
     items_area.bind("<Configure>", lambda e: items_area.after(50, recalculate_grid))
+    show_category(selected_cat.get())
 
     # 3. Tray Panel
     tray = tk.Frame(window, bg=palette.bg, width=420)
@@ -281,7 +366,7 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
 
     tk.Button(badge_row, text="✕  DONE WITH ORDER", font=("Segoe UI", 8, "bold"),
               bg=palette.bg, fg="#95a5a6", activeforeground=palette.danger, relief="flat",
-              command=lambda: [window.attributes("-fullscreen", False), start_login(window)]
+              command=lambda: [play("PopClose.wav"), window.attributes("-fullscreen", False), start_login(window)]
               ).pack(side="right")
 
     # Scrollable Tray
@@ -292,9 +377,15 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
         x, y = event.x_root, event.y_root
         tx, ty, tw, th = tray.winfo_rootx(), tray.winfo_rooty(), tray.winfo_width(), tray.winfo_height()
         if tx <= x <= tx + tw and ty <= y <= ty + th:
-            cart_scroll_frame._parent_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            canvas = cart_scroll_frame._parent_canvas
+            scroll_top, scroll_bottom = canvas.yview()
+            if scroll_top > 0 or scroll_bottom < 1:
+                canvas.yview_scroll(int(-21 * (event.delta / 120)), "units")
         else:
-            menu_scroll._parent_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            menu_canvas = menu_scroll._parent_canvas
+            scroll_top, scroll_bottom = menu_canvas.yview()
+            if scroll_top > 0 or scroll_bottom < 1:
+                menu_canvas.yview_scroll(int(-21 * (event.delta / 120)), "units")
 
     window.bind_all("<MouseWheel>", _on_mousewheel)
 
@@ -307,10 +398,11 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
     total_lbl = tk.Label(tot_row, text="₱0.00", font=("Segoe UI", 26, "bold"), fg=palette.primary, bg=palette.bg)
     total_lbl.pack(side="right")
 
-    cash_entry = tk.Entry(footer, textvariable=cash_var, justify="center", font=("Segoe UI", 22),
-                          bd=0, bg="#f1f2f6", fg=palette.text)
+    cash_entry = tk.Entry(footer, textvariable=cash_var, justify="center", font=("Segoe UI", 22), bd=0, bg="#f1f2f6",
+                          fg=palette.text)
     cash_entry.pack(fill="x", pady=(0, 16), ipady=10)
+
     tk.Button(footer, text="PLACE ORDER", bg=palette.secondary, fg=palette.win95, font=("Segoe UI", 15, "bold"), height=2,
-              relief="flat", command=handle_checkout).pack(fill="x")
+              relief="flat", command=lambda: [play("Select.wav"), handle_checkout()]).pack(fill="x")
 
     update_ui()
