@@ -11,6 +11,7 @@ import sys
 
 from utils.palette import palette
 from utils.sound import play
+from PIL import Image, ImageTk
 
 ROLE_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".role")
 
@@ -163,9 +164,15 @@ def start_launcher(window):
     header.pack(fill="x")
     header.pack_propagate(False)
 
+    logo_img = Image.open("assets/Logo.png").resize((42, 42), Image.LANCZOS)
+    logo_photo = ImageTk.PhotoImage(logo_img)
+    logo_lbl = tk.Label(header, image=logo_photo, bg=palette.text)
+    logo_lbl.image = logo_photo
+    logo_lbl.pack(side="left", padx=(28, 6))
     tk.Label(header, text="ORPOSS",
              font=("Helvetica", 26, "bold"), fg=palette.bg, bg=palette.text
-             ).pack(side="left", padx=28)
+             ).pack(side="left", padx=(0, 28))
+
     tk.Label(header, text="Ordering & Point of Sales System",
              font=("Helvetica", 10), fg="#95a5a6", bg=palette.text
              ).pack(side="left", padx=(0, 28))
