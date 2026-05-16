@@ -19,7 +19,8 @@ def start_login(window):
     container = tk.Frame(window, bg=palette.bg)
     container.place(relx=0.5, rely=0.5, anchor="center")
 
-    logo_img = Image.open("assets/Logo.png")
+    import os; _ASSETS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
+    logo_img = Image.open(os.path.join(_ASSETS, "Logo.png"))
     logo_img = logo_img.resize((70, 70), Image.LANCZOS)
     logo_photo = ImageTk.PhotoImage(logo_img)
 

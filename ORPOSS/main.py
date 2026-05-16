@@ -7,7 +7,7 @@ if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
 
 import customtkinter as ctk
 from ui.launcher import start_launcher
-from db.connection import get_connection
+from db.connection import get_connection, start_reconnect_watcher
 from db.products_db import load_inventory
 from db.orders_db import get_orders
 
@@ -16,6 +16,7 @@ def main():
     get_connection()
     load_inventory()
     get_orders()
+    start_reconnect_watcher()   # Store & Forward: auto-flush queue when DB comes back
 
     root = ctk.CTk()
     root.title("ORPOSS — Ordering & Point of Sales System")

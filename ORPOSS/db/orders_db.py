@@ -2,13 +2,14 @@
 db/orders_db.py
 Persists orders + status changes to MySQL.
 Fires Pusher events so other terminals update in real time.
-Falls back to in-memory only when offline.
+Falls back to in-memory list AND offline_queue (Store & Forward) when offline.
 """
 import datetime
-from db.connection import execute, is_online
+from db.connection    import execute, is_online
+from db.offline_queue import enqueue
 from utils.pusher_client import push_event
 
-orders     = []
+orders      = []
 STATUS_FLOW = ("preparing", "serving", "claimed")
 
 
@@ -27,6 +28,7 @@ def add_order(invoice_no, order_type, payment_mode, total, summary, cash=0, chan
         "serving_at":   "",
         "claimed_at":   "",
     }
+
     if is_online():
         execute(
             """INSERT INTO orders
@@ -40,7 +42,18 @@ def add_order(invoice_no, order_type, payment_mode, total, summary, cash=0, chan
                 (invoice_no, name, data["qty"], data["price"], data.get("product_id"))
             )
     else:
+        # Keep in memory for this session AND queue for later sync
         orders.append(order)
+        enqueue("add_order", {
+            "invoice_no":   invoice_no,
+            "order_type":   order_type,
+            "payment_mode": payment_mode,
+            "total":        total,
+            "cash":         cash,
+            "change_amt":   change_amt,
+            "created_at":   now.isoformat(),
+            "summary":      summary,
+        })
 
     push_event("orders", "new-order", {
         "invoice_no":   invoice_no,
@@ -76,7 +89,9 @@ def advance_order(invoice_no):
                 idx = STATUS_FLOW.index(order["status"])
                 if idx >= len(STATUS_FLOW) - 1:
                     return order
-                return _set_status_offline(order, STATUS_FLOW[idx + 1])
+                result = _set_status_offline(order, STATUS_FLOW[idx + 1])
+                enqueue("advance_order", {"invoice_no": invoice_no})
+                return result
     return None
 
 
@@ -88,9 +103,8 @@ def cancel_order(invoice_no):
         if not row:
             return False
         if row["status"] != "preparing":
-            return False  # can only cancel while still preparing
-        execute("UPDATE orders SET status='cancelled' WHERE invoice_no=%s",
-                (invoice_no,))
+            return False
+        execute("UPDATE orders SET status='cancelled' WHERE invoice_no=%s", (invoice_no,))
         push_event("orders", "order-updated", {"invoice_no": invoice_no, "status": "cancelled"})
         return True
     else:
@@ -99,6 +113,7 @@ def cancel_order(invoice_no):
                 order["status"] = "cancelled"
                 push_event("orders", "order-updated",
                            {"invoice_no": invoice_no, "status": "cancelled"})
+                enqueue("cancel_order", {"invoice_no": invoice_no})
                 return True
     return False
 
@@ -125,7 +140,6 @@ def _fetch_from_db(status=None):
         where  = "WHERE o.status = %s"
         params = (status,)
     else:
-        # Exclude cancelled and claimed from the live view by default
         where  = "WHERE o.status IN ('preparing','serving')"
         params = ()
 

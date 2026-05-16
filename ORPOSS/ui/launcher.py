@@ -85,7 +85,6 @@ def _launch_role(window, key):
         for w in window.winfo_children():
             w.destroy()
         open_order_status_window(window, allow_status_update=False)
-        # Show a minimal host frame so the window isn't blank
         tk.Label(window, text="ORDER STATUS DISPLAY",
                  font=("Segoe UI", 14, "bold"),
                  bg=palette.bg, fg=palette.text).pack(expand=True)

@@ -81,7 +81,7 @@ def start_admin_panel(window, back_to_pos_callback):
         for name, data in inventory.items():
             stock = data['stock']
             price = data['price']
-            cost  = data.get('cost', 0) # Use .get() in case cost isn't set yet
+            cost  = data.get('cost', 0)
             profit = price - cost
             
             # Determine Tags
@@ -122,7 +122,6 @@ def start_admin_panel(window, back_to_pos_callback):
         tk.Label(header, text="Sales & Profit Log", font=("Segoe UI", 18, "bold"),
                  bg="white", fg=palette.text).pack(side="left")
 
-        # UPDATED: Summary card now shows both Revenue and Profit
         summary_card = tk.Frame(log_win, bg=palette.secondary, padx=20, pady=15)
         summary_card.pack(fill="x", padx=30, pady=20)
 

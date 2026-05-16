@@ -186,7 +186,8 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
 
     title_row_sidebar = tk.Frame(sidebar, bg=palette.text)
     title_row_sidebar.pack(pady=(30, 4))
-    logo_toh = Image.open("assets/Logo.png").resize((36, 36), Image.LANCZOS)
+    import os; _ASSETS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
+    logo_toh = Image.open(os.path.join(_ASSETS, "Logo.png")).resize((36, 36), Image.LANCZOS)
     logo_photo = ImageTk.PhotoImage(logo_toh)
     logo_lbl = tk.Label(title_row_sidebar, image=logo_photo, bg=palette.text)
     logo_lbl.image = logo_photo

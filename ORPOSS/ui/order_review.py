@@ -1,6 +1,6 @@
 import tkinter as tk
 from utils.helper import peso
-from utils.palette import palette  # Import global palette
+from utils.palette import palette
 
 
 def show_order_review(parent_window, cash, total, summary, on_confirm):
