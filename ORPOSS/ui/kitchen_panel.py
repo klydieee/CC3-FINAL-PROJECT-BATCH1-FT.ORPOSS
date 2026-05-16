@@ -3,7 +3,7 @@ import customtkinter as ctk
 from tkinter import messagebox
 import sys
 
-from db.orders_db import advance_order, get_orders
+from db.orders_db import advance_order, cancel_order, get_orders
 from utils.helper import peso
 from utils.palette import palette
 from ui.window_utils import clear_main_window
@@ -146,17 +146,35 @@ def start_kitchen_panel(window):
                  font=("Segoe UI", 10, "bold"), fg=palette.primary, bg="white"
                  ).pack(side="right")
 
-        # action button (not on claimed)
+        # action buttons (not on claimed)
         btn_text = NEXT_BTN.get(status)
         if btn_text:
+            btn_row = tk.Frame(card, bg="white")
+            btn_row.pack(fill="x", padx=10, pady=(0, 10))
+
             btn_color = NEXT_BTN_COLORS.get(status, palette.secondary)
-            tk.Button(card, text=btn_text,
+            tk.Button(btn_row, text=btn_text,
                       font=("Segoe UI", 9, "bold"),
                       bg=btn_color, fg="white", relief="flat",
                       cursor="hand2", pady=8,
                       command=lambda inv=order["invoice_no"]: [
                           advance_order(inv), refresh()]
-                      ).pack(fill="x", padx=10, pady=(0, 10))
+                      ).pack(side="left", fill="x", expand=True, padx=(0, 4))
+
+            # Cancel only available while still preparing
+            if status == "preparing":
+                def on_cancel(inv=order["invoice_no"]):
+                    import tkinter.messagebox as mb
+                    if mb.askyesno("Cancel Order",
+                                   f"Cancel order #{inv[-4:]}? This cannot be undone."):
+                        cancel_order(inv)
+                        refresh()
+                tk.Button(btn_row, text="✕ CANCEL",
+                          font=("Segoe UI", 9, "bold"),
+                          bg=palette.danger, fg="white", relief="flat",
+                          cursor="hand2", pady=8, width=10,
+                          command=on_cancel
+                          ).pack(side="right")
 
     _poll_id = [None]
 

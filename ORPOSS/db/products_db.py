@@ -16,7 +16,7 @@ def load_inventory():
     if is_online():
         # UPDATED: Added 'cost' to the SELECT statement
         rows = execute(
-            "SELECT id, name, price, stock, image_url, cost FROM order_items",
+            "SELECT id, name, price, stock, image_url, cost, category FROM order_items",
             fetch="all"
         )
         if rows:
@@ -27,7 +27,8 @@ def load_inventory():
                     "price":     float(row["price"]),
                     "stock":     row["stock"],
                     "image_url": row["image_url"] or "",
-                    "cost":      float(row.get("cost", 0)), # UPDATED: Store cost
+                    "cost":      float(row.get("cost", 0)),
+                    "category":  row.get("category") or "All",
                 }
             print(f"[DB] Loaded {len(inventory)} products from order_items.")
             return
@@ -39,7 +40,8 @@ def load_inventory():
             "price": v["price"], 
             "stock": v["stock"], 
             "cost": v.get("cost", 0),
-            "image_url": ""
+            "image_url": "",
+            "category":  v.get("category", "All"),
         }
         for k, v in _local_inventory.items()
     })
@@ -54,6 +56,7 @@ def _push_inventory():
                 "stock":     item["stock"],
                 "image_url": item["image_url"],
                 "cost":      item.get("cost", 0),
+                "category":  item.get("category", "All"),
             }
             for name, item in inventory.items()
         }
@@ -115,26 +118,38 @@ def update_image_url(name, image_url):
             _push_inventory()
 
 
-def add_product(name, price, stock=50, cost=0):
+def add_product(name, price, stock=50, cost=0, category="All"):
     """Add a new product with price, stock, and cost. Returns True on success."""
     if name in inventory:
         return False, "Product already exists."
     new_id = None
     if is_online():
         new_id = execute(
-            "INSERT INTO order_items (name, price, stock, cost) VALUES (%s, %s, %s, %s)",
-            (name, price, stock, cost)
+            "INSERT INTO order_items (name, price, stock, cost, category) VALUES (%s, %s, %s, %s, %s)",
+            (name, price, stock, cost, category)
         )
     inventory[name] = {
-        "id": new_id, 
-        "price": float(price), 
-        "stock": stock, 
-        "cost": float(cost), 
-        "image_url": ""
+        "id": new_id,
+        "price": float(price),
+        "stock": stock,
+        "cost": float(cost),
+        "image_url": "",
+        "category": category,
     }
     _push_inventory()
     return True, "Product added."
 
+
+
+def save_category(name, category):
+    """Update category for an item."""
+    item = inventory.get(name)
+    if item is not None:
+        item["category"] = category
+        if item.get("id") and is_online():
+            execute("UPDATE order_items SET category=%s WHERE id=%s",
+                    (category, item["id"]))
+        _push_inventory()
 
 def delete_product(name):
     """Remove a product from DB and local inventory. Returns True on success."""

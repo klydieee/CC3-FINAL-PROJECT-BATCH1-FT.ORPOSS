@@ -43,16 +43,18 @@ def start_admin_panel(window, back_to_pos_callback):
     inv_frame.pack(side="left", fill="both", expand=True)
 
     # 1. Added "cost" to columns
-    tree = ttk.Treeview(inv_frame, columns=("name", "price", "cost", "stock"), show="headings", selectmode="extended")
-    tree.heading("name",  text="ITEM NAME")
-    tree.heading("price", text="UNIT PRICE")
-    tree.heading("cost",  text="UNIT COST") # Added heading
-    tree.heading("stock", text="STOCK COUNT")
+    tree = ttk.Treeview(inv_frame, columns=("name", "price", "cost", "stock", "category"), show="headings", selectmode="extended")
+    tree.heading("name",     text="ITEM NAME")
+    tree.heading("price",    text="UNIT PRICE")
+    tree.heading("cost",     text="UNIT COST")
+    tree.heading("stock",    text="STOCK COUNT")
+    tree.heading("category", text="CATEGORY")
 
-    tree.column("name",  width=200, anchor="w")
-    tree.column("price", width=100, anchor="center")
-    tree.column("cost",  width=100, anchor="center") # Added column
-    tree.column("stock", width=100, anchor="center")
+    tree.column("name",     width=180, anchor="w")
+    tree.column("price",    width=90,  anchor="center")
+    tree.column("cost",     width=90,  anchor="center")
+    tree.column("stock",    width=90,  anchor="center")
+    tree.column("category", width=110, anchor="center")
 
     # Visual tags for the Admin
     tree.tag_configure("lowstock", background="#ff7675", foreground="white")
@@ -93,9 +95,10 @@ def start_admin_panel(window, back_to_pos_callback):
             if filter_low and stock >= 10:
                 continue
                 
-            # Insert into tree with all 4 columns: Name, Price, Cost, Stock
-            tree.insert("", "end", 
-                        values=(name.upper(), peso(price), peso(cost), stock), 
+            # Insert into tree with all 5 columns: Name, Price, Cost, Stock, Category
+            cat = data.get("category", "All")
+            tree.insert("", "end",
+                        values=(name.upper(), peso(price), peso(cost), stock, cat),
                         tags=tuple(tags))
                         
         return low_count
@@ -439,6 +442,12 @@ def start_admin_panel(window, back_to_pos_callback):
     stock_entry = tk.Entry(edit_frame, justify="center", font=("Segoe UI", 12),
                            bg=palette.bg, relief="flat")
     stock_entry.pack(fill="x", pady=(5, 15), ipady=8)
+
+    tk.Label(edit_frame, text="Category:", bg="white").pack(anchor="w")
+    cat_var = tk.StringVar()
+    cat_entry = tk.Entry(edit_frame, textvariable=cat_var, justify="center", font=("Segoe UI", 12),
+                         bg=palette.bg, relief="flat")
+    cat_entry.pack(fill="x", pady=(5, 15), ipady=8)
     
     tk.Label(edit_frame, text="New Cost (₱):", bg="white").pack(anchor="w")
     cost_entry = tk.Entry(edit_frame, justify="center", font=("Segoe UI", 12),
@@ -456,35 +465,32 @@ def start_admin_panel(window, back_to_pos_callback):
             c = float(cost_entry.get())  if cost_entry.get() else None
 
             # Import the specific database functions
-            from db.products_db import save_price, set_stock, save_cost 
-            
+            cat_val = cat_var.get().strip() or None
+            from db.products_db import save_price, set_stock, save_cost, save_category
+
             for item_id in selected:
                 name = tree.item(item_id)['values'][0]
-                # Find the correct key in your inventory dictionary
                 key  = next((k for k in inventory if k.upper() == name), name)
-                
-                # 2. Determine final values to check against guardrails
+
                 final_p = p if p is not None else inventory[key]['price']
                 final_c = c if c is not None else inventory[key].get('cost', 0)
-                profit = final_p - final_c
+                profit  = final_p - final_c
 
-                # Guardrail: Prevent selling at a loss
                 if final_p <= final_c:
-                    messagebox.showerror("Invalid Pricing", 
+                    messagebox.showerror("Invalid Pricing",
                         f"Error for {name}: Selling price (₱{final_p}) cannot be lower than cost (₱{final_c}).")
                     return
-                
-                # Guardrail: Warning for low profit margin
+
                 if profit < 5:
-                    confirm = messagebox.askyesno("Low Margin Warning", 
+                    confirm = messagebox.askyesno("Low Margin Warning",
                         f"Profit for '{name}' will only be ₱{profit:.2f}. Proceed anyway?")
                     if not confirm:
                         continue
 
-                # 3. Apply changes to Database
-                if p is not None: save_price(key, p)
-                if s is not None: set_stock(key, s)
-                if c is not None: save_cost(key, c)
+                if p is not None:   save_price(key, p)
+                if s is not None:   set_stock(key, s)
+                if c is not None:   save_cost(key, c)
+                if cat_val:         save_category(key, cat_val)
 
             # 4. Sync and Refresh UI
             save_to_disk()
@@ -654,6 +660,12 @@ def start_admin_panel(window, back_to_pos_callback):
                                bg=palette.bg, relief="flat")
     new_stock_entry.insert(0, "50")
     new_stock_entry.pack(fill="x", pady=(4, 12), ipady=7)
+
+    tk.Label(product_frame, text="Category:", bg="white").pack(anchor="w")
+    new_cat_entry = tk.Entry(product_frame, justify="center", font=("Segoe UI", 11),
+                             bg=palette.bg, relief="flat")
+    new_cat_entry.insert(0, "All")
+    new_cat_entry.pack(fill="x", pady=(4, 12), ipady=7)
 
     tk.Label(product_frame, text="Unit Cost (₱):", bg="white").pack(anchor="w")
     new_cost_entry = tk.Entry(product_frame, justify="center", font=("Segoe UI", 11), bg=palette.bg, relief="flat")

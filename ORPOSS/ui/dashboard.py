@@ -169,18 +169,79 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
         show_order_review(window, cash, total, summary, finalize)
 
     # 1. Sidebar
-    sidebar = tk.Frame(window, bg=palette.text, width=180)
+    sidebar = tk.Frame(window, bg=palette.text, width=200)
     sidebar.pack(side="left", fill="y")
     sidebar.pack_propagate(False)
 
-    tk.Label(sidebar, text="ORPOSS", fg=palette.win95, bg=palette.text, font=("Segoe UI", 18, "bold")).pack(pady=(30, 4))
-    tk.Label(sidebar, text="Customer Menu", fg=palette.win95, bg=palette.text, font=("Segoe UI", 14, "italic")).pack(pady=(0, 4))
+    tk.Label(sidebar, text="ORPOSS", fg=palette.win95, bg=palette.text,
+             font=("Segoe UI", 18, "bold")).pack(pady=(30, 4))
+    tk.Label(sidebar, text="Customer Menu", fg=palette.win95, bg=palette.text,
+             font=("Segoe UI", 14, "italic")).pack(pady=(0, 12))
 
     if user_role == "Admin":
-        tk.Button(sidebar, text="📺  CUSTOMER SCREEN", bg="#34495e", fg=palette.win95, font=("Segoe UI", 8, "bold"),
-                  relief="flat",
+        tk.Button(sidebar, text="📺  CUSTOMER SCREEN", bg="#34495e", fg=palette.win95,
+                  font=("Segoe UI", 8, "bold"), relief="flat",
                   command=lambda: open_order_status_window(window, allow_status_update=False)
                   ).pack(fill="x", padx=15, pady=(0, 8))
+
+    # ── Category filter sidebar ───────────────────────────────────────────────
+    tk.Frame(sidebar, bg="#34495e", height=1).pack(fill="x", padx=20, pady=(0, 10))
+    tk.Label(sidebar, text="CATEGORIES", fg="#95a5a6", bg=palette.text,
+             font=("Segoe UI", 8, "bold"), anchor="center").pack(fill="x", pady=(0, 6))
+
+    # Scrollable category list — CTkScrollableFrame matches the rest of the app
+    cat_scroll_frame = ctk.CTkScrollableFrame(
+        sidebar, fg_color=palette.text, corner_radius=0,
+        scrollbar_button_color="#34495e",
+        scrollbar_button_hover_color=palette.primary,
+    )
+    cat_scroll_frame.pack(fill="both", expand=True, padx=0, pady=0)
+
+    selected_cat = tk.StringVar(value="All")
+    cat_buttons = {}
+
+    def filter_by_category(cat):
+        selected_cat.set(cat)
+        for c, btn in cat_buttons.items():
+            btn.configure(
+                fg_color=palette.primary if c == cat else "transparent",
+                font=ctk.CTkFont("Segoe UI", 13, "bold") if c == cat else ctk.CTkFont("Segoe UI", 13)
+            )
+        show_category(cat)
+
+    def show_category(cat):
+        for name, frame in item_frames.items():
+            item_cat = inventory[name].get("category", "All")
+            if cat == "All" or item_cat == cat:
+                frame.grid()
+            else:
+                frame.grid_remove()
+        items_area.after(50, recalculate_grid)
+
+    def rebuild_category_buttons():
+        for w in cat_scroll_frame.winfo_children():
+            w.destroy()
+        cat_buttons.clear()
+        cats = ["All"] + sorted(set(
+            inventory[n].get("category", "All")
+            for n in inventory
+            if inventory[n].get("category", "All") != "All"
+        ))
+        for cat in cats:
+            btn = ctk.CTkButton(
+                cat_scroll_frame, text=cat,
+                font=ctk.CTkFont("Segoe UI", 13, "bold" if cat == selected_cat.get() else "normal"),
+                fg_color=palette.primary if cat == selected_cat.get() else "transparent",
+                text_color="white",
+                hover_color="#34495e",
+                anchor="center",
+                height=40,
+                corner_radius=6,
+                cursor="hand2",
+                command=lambda c=cat: filter_by_category(c)
+            )
+            btn.pack(fill="x", padx=10, pady=3)
+            cat_buttons[cat] = btn
 
     # 2. Menu Grid
     menu_scroll = ctk.CTkScrollableFrame(window, fg_color=palette.bg, corner_radius=0)
@@ -245,6 +306,8 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
 
     for name in inventory: item_frames[name] = make_box(name)
 
+    rebuild_category_buttons()
+
     def recalculate_grid(e=None):
         for slave in items_area.grid_slaves(): slave.grid_forget()
         num_cols = max(1, items_area.winfo_width() // 224)
@@ -253,6 +316,7 @@ def start_dashboard(window, user_role="Client", order_type="Dine-In"):
         for i in range(num_cols): items_area.grid_columnconfigure(i, weight=1)
 
     items_area.bind("<Configure>", lambda e: items_area.after(50, recalculate_grid))
+    show_category(selected_cat.get())
 
     # 3. Tray Panel
     tray = tk.Frame(window, bg=palette.bg, width=420)

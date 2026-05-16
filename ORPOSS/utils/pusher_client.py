@@ -1,17 +1,23 @@
 """
 utils/pusher_client.py
-Wraps Pusher server-side SDK. Silently no-ops if unavailable.
-Also exposes subscribe() for the client-side (pusher-py).
+Wraps Pusher server-side SDK (push) and client-side (subscribe).
+Uses a SINGLE persistent pysher client shared across all subscribers.
 """
 import os
 import threading
 
-_pusher = None
-_pusher_client = None
+_pusher      = None
 _initialized = False
 
+# Single shared pysher client
+_pysher_client    = None
+_pysher_lock      = threading.Lock()
+_pysher_connected = False
+_pending_subs     = []   # (channel, event, callback) queued before connect
+
+
 def _load_env():
-    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    base     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     env_path = os.path.join(base, ".env")
     env = {}
     if os.path.exists(env_path):
@@ -23,14 +29,15 @@ def _load_env():
                     env[k.strip()] = v.strip()
     return env
 
-def _init():
+
+def _init_server():
     global _pusher, _initialized
     if _initialized:
         return
     _initialized = True
     try:
         import pusher
-        env = _load_env()
+        env     = _load_env()
         _pusher = pusher.Pusher(
             app_id  = env.get("PUSHER_APP_ID", ""),
             key     = env.get("PUSHER_KEY", ""),
@@ -40,13 +47,14 @@ def _init():
         )
         print("[Pusher] Server client ready.")
     except Exception as e:
-        print(f"[Pusher] Server init failed (offline mode): {e}")
+        print(f"[Pusher] Server init failed: {e}")
         _pusher = None
+
 
 def push_event(channel, event, data):
     """Fire a Pusher event in a background thread (non-blocking)."""
     def _fire():
-        _init()
+        _init_server()
         if _pusher:
             try:
                 _pusher.trigger(channel, event, data)
@@ -55,29 +63,63 @@ def push_event(channel, event, data):
     threading.Thread(target=_fire, daemon=True).start()
 
 
-# ── Client-side subscription ──────────────────────────────────────────────────
-def subscribe(channel, event, callback):
-    """
-    Subscribe to a Pusher channel/event.
-    callback(data) is called in a background thread whenever the event fires.
-    Uses pysher (pip install pysher).
-    """
-    def _connect():
+# ── Single shared pysher client ───────────────────────────────────────────────
+
+def _get_pysher():
+    """Return the shared pysher client, creating it if needed."""
+    global _pysher_client, _pysher_connected
+
+    with _pysher_lock:
+        if _pysher_client is not None:
+            return _pysher_client
         try:
             import pysher
-            env = _load_env()
+            env    = _load_env()
             client = pysher.Pusher(
                 key     = env.get("PUSHER_KEY", ""),
                 cluster = env.get("PUSHER_CLUSTER", "ap1"),
                 secure  = True,
             )
+
             def on_connect(data):
-                ch = client.subscribe(channel)
-                ch.bind(event, callback)
+                global _pysher_connected
+                _pysher_connected = True
+                print("[Pusher] Client connected.")
+                # Flush pending subscriptions
+                for ch_name, ev, cb in _pending_subs:
+                    try:
+                        ch = client.subscribe(ch_name)
+                        ch.bind(ev, cb)
+                    except Exception as e:
+                        print(f"[Pusher] Late bind failed: {e}")
+                _pending_subs.clear()
 
             client.connection.bind("pusher:connection_established", on_connect)
             client.connect()
+            _pysher_client = client
+            return client
         except Exception as e:
-            print(f"[Pusher] Client subscribe failed: {e}")
+            print(f"[Pusher] Client init failed: {e}")
+            return None
 
-    threading.Thread(target=_connect, daemon=True).start()
+
+def subscribe(channel, event, callback):
+    """
+    Subscribe to a Pusher channel/event using the shared client.
+    Safe to call multiple times — won't create duplicate connections.
+    """
+    def _do():
+        client = _get_pysher()
+        if client is None:
+            return
+        if _pysher_connected:
+            try:
+                ch = client.subscribe(channel)
+                ch.bind(event, callback)
+            except Exception as e:
+                print(f"[Pusher] subscribe failed: {e}")
+        else:
+            # Queue it — will be bound once connected
+            _pending_subs.append((channel, event, callback))
+
+    threading.Thread(target=_do, daemon=True).start()
